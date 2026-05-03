@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   SkipBack, SkipForward, Plus, Trash2, Clock, CheckCircle2,
   RotateCcw, Star, Circle, ChevronLeft, List, ExternalLink,
-  AlertCircle, Play, Pause, Volume2, VolumeX, Maximize2,
+  AlertCircle, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
@@ -128,6 +128,7 @@ export default function Player() {
   const [speed,          setSpeed]          = useState(1);
   const [playerError,    setPlayerError]    = useState(false);
   const [ctrlVisible,    setCtrlVisible]    = useState(true);
+  const [cssFullscreen,  setCssFullscreen]  = useState(false);
 
   /* notes */
   const [noteText,  setNoteText]  = useState("");
@@ -312,9 +313,41 @@ export default function Player() {
     try { setSpeed(s); playerRef.current?.setPlaybackRate(s); } catch (_) {}
   }
 
-  function enterFullscreen() {
-    if (wrapRef.current?.requestFullscreen) wrapRef.current.requestFullscreen();
+  function toggleFullscreen() {
+    // Native fullscreen first; fall back to CSS overlay (works inside iframes)
+    if (!cssFullscreen) {
+      const el = wrapRef.current;
+      const req = el?.requestFullscreen ?? (el as unknown as { webkitRequestFullscreen?: () => Promise<void> })?.webkitRequestFullscreen;
+      if (req && document.fullscreenEnabled) {
+        req.call(el).catch(() => setCssFullscreen(true));
+      } else {
+        setCssFullscreen(true);
+      }
+    } else {
+      setCssFullscreen(false);
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
   }
+
+  // Exit CSS fullscreen on Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && cssFullscreen) setCssFullscreen(false);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [cssFullscreen]);
+
+  // Sync CSS fullscreen when native fullscreen exits via browser UI
+  useEffect(() => {
+    function onFsChange() {
+      if (!document.fullscreenElement && cssFullscreen) setCssFullscreen(false);
+    }
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, [cssFullscreen]);
 
   function addNote() {
     if (!noteText.trim() || !video) return;
@@ -396,8 +429,11 @@ export default function Player() {
         {/* ── Video area ────────────────────────────────────────────────── */}
         <div
           ref={wrapRef}
-          className="relative bg-black flex-shrink-0 select-none"
-          style={{ paddingBottom: "56.25%" }}
+          className={cn(
+            "relative bg-black flex-shrink-0 select-none",
+            cssFullscreen && "fixed inset-0 z-[9999] w-full h-full"
+          )}
+          style={cssFullscreen ? undefined : { paddingBottom: "56.25%" }}
           onMouseMove={showCtrl}
           onMouseLeave={() => { if (playing) setCtrlVisible(false); }}
         >
@@ -512,9 +548,9 @@ export default function Player() {
               {/* Fullscreen */}
               <button
                 className="text-white/80 hover:text-white transition-colors ml-1"
-                onClick={enterFullscreen}
+                onClick={toggleFullscreen}
               >
-                <Maximize2 className="w-4 h-4" />
+                {cssFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
             </div>
           </div>
