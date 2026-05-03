@@ -30,6 +30,7 @@ export interface Video {
   thumbnail: string;
   description: string;
   subtopicId?: string;
+  topicId?: string;
   playlistId?: string;
   status: VideoStatus;
   progress: number;
