@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
+import { useConfirm } from "@/hooks/use-confirm";
 
 /* ── YouTube IFrame API types ─────────────────────────────────────────── */
 declare global {
@@ -121,6 +122,7 @@ export default function Player() {
     "/library";
   const [videos, setVideos] = useLocalStorage<Video[]>("nexus-videos", []);
   const [notes, setNotes]   = useLocalStorage<Note[]>("nexus-notes",   []);
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const video = videos.find(v => v.id === videoId);
 
@@ -647,7 +649,7 @@ export default function Player() {
                   </button>
                   <button
                     className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
-                    onClick={() => setNotes(ns => ns.filter(n => n.id !== note.id))}
+                    onClick={async () => { if (await confirm("Delete this note?")) setNotes(ns => ns.filter(n => n.id !== note.id)); }}
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -677,6 +679,7 @@ export default function Player() {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {confirmDialog}
     </>
   );
 }

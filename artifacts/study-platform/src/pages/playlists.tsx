@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Plus, Trash2, ListVideo, PlayCircle, X, GripVertical, Download, AlertCircle, Loader2, Youtube, Pencil } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/use-confirm";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
 
@@ -78,6 +79,7 @@ export default function Playlists() {
     urlPlaylistId ?? playlists[0]?.id ?? null
   );
 
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -158,7 +160,8 @@ export default function Playlists() {
     setShowCreate(false);
   }
 
-  function deletePlaylist(id: string) {
+  async function deletePlaylist(id: string) {
+    if (!(await confirm("Delete this playlist? The videos in your library won't be affected."))) return;
     setPlaylists(ps => ps.filter(p => p.id !== id));
     if (selected === id) setSelected(playlists.find(p => p.id !== id)?.id || null);
   }
@@ -167,7 +170,8 @@ export default function Playlists() {
     setPlaylists(ps => ps.map(p => p.id === selected ? { ...p, videoIds: [...p.videoIds, videoId] } : p));
   }
 
-  function removeVideo(videoId: string) {
+  async function removeVideo(videoId: string) {
+    if (!(await confirm("Remove this video from the playlist?"))) return;
     setPlaylists(ps => ps.map(p => p.id === selected ? { ...p, videoIds: p.videoIds.filter(id => id !== videoId) } : p));
   }
 
@@ -509,6 +513,8 @@ export default function Playlists() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {confirmDialog}
 
       {/* Add video dialog */}
       <Dialog open={showAddVideo} onOpenChange={setShowAddVideo}>

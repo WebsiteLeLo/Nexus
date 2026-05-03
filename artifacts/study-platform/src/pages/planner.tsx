@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/use-confirm";
 
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr);
@@ -63,7 +64,10 @@ export default function Planner() {
     setTasks(ts => ts.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
   }
 
-  function deleteTask(id: string) {
+  const { confirm, dialog: confirmDialog } = useConfirm();
+
+  async function deleteTask(id: string) {
+    if (!(await confirm("Delete this task?"))) return;
     setTasks(ts => ts.filter(t => t.id !== id));
   }
 
@@ -173,6 +177,7 @@ export default function Planner() {
           </div>
         </div>
       </div>
+      {confirmDialog}
     </div>
   );
 }

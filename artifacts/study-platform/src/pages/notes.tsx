@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Clock, PlayCircle, Trash2, Download } from "lucide-react";
 import { Link } from "wouter";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function Notes() {
   const [notes, setNotes] = useLocalStorage<Note[]>('nexus-notes', INITIAL_NOTES);
@@ -34,7 +35,10 @@ export default function Notes() {
     return ids.map(id => videoMap[id]).filter(Boolean);
   }, [notes, videoMap]);
 
-  function deleteNote(id: string) {
+  const { confirm, dialog: confirmDialog } = useConfirm();
+
+  async function deleteNote(id: string) {
+    if (!(await confirm("Delete this note?"))) return;
     setNotes(ns => ns.filter(n => n.id !== id));
   }
 
@@ -170,6 +174,7 @@ export default function Notes() {
           </div>
         </div>
       </div>
+    {confirmDialog}
     </div>
   );
 }

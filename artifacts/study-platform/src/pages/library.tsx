@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ChevronRight, ChevronDown, Plus, Trash2, Edit2, Video as VideoIcon, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
+import { useConfirm } from "@/hooks/use-confirm";
 
 export default function Library() {
   const [subjects, setSubjects] = useLocalStorage<Subject[]>('nexus-subjects', INITIAL_SUBJECTS);
@@ -21,6 +22,7 @@ export default function Library() {
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set(['top1']));
   const [expandedSubtopics, setExpandedSubtopics] = useState<Set<string>>(new Set());
 
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [addDialog, setAddDialog] = useState<{ type: 'subject' | 'topic' | 'subtopic' | 'video' | 'video-topic'; parentId?: string } | null>(null);
   const [inputName, setInputName] = useState('');
   const [inputUrl, setInputUrl] = useState('');
@@ -95,8 +97,10 @@ export default function Library() {
     setAddDialog(null);
   }
 
-  function deleteSubject(id: string) {
-    const tIds = topics.filter(t => t.subjectId === id).map(t => t.id);
+  async function deleteSubject(id: string) {
+    const t = topics.filter(t => t.subjectId === id);
+    if (!(await confirm({ description: `Delete this subject and all its ${t.length} topic(s) and their videos?` }))) return;
+    const tIds = t.map(t => t.id);
     const stIds = subtopics.filter(st => tIds.includes(st.topicId)).map(st => st.id);
     setVideos(vs => vs.filter(v => !stIds.includes(v.subtopicId || '') && !tIds.includes(v.topicId || '')));
     setSubtopics(s => s.filter(st => !tIds.includes(st.topicId)));
@@ -104,11 +108,23 @@ export default function Library() {
     setSubjects(s => s.filter(s => s.id !== id));
   }
 
-  function deleteTopic(id: string) {
+  async function deleteTopic(id: string) {
+    if (!(await confirm("Delete this topic and all its subtopics and videos?"))) return;
     const stIds = subtopics.filter(st => st.topicId === id).map(st => st.id);
     setVideos(vs => vs.filter(v => !stIds.includes(v.subtopicId || '') && v.topicId !== id));
     setSubtopics(s => s.filter(st => st.topicId !== id));
     setTopics(ts => ts.filter(t => t.id !== id));
+  }
+
+  async function deleteSubtopic(id: string) {
+    if (!(await confirm("Delete this subtopic and all its videos?"))) return;
+    setVideos(vs => vs.filter(v => v.subtopicId !== id));
+    setSubtopics(s => s.filter(st => st.id !== id));
+  }
+
+  async function deleteVideo(id: string) {
+    if (!(await confirm("Delete this video?"))) return;
+    setVideos(vs => vs.filter(v => v.id !== id));
   }
 
   const STATUS_COLORS: Record<string, string> = { completed: 'text-emerald-500', revise: 'text-amber-500', important: 'text-violet-500', pending: 'text-muted-foreground' };
@@ -159,7 +175,7 @@ export default function Library() {
                     <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setInputName(''); setAddDialog({ type: 'topic', parentId: subject.id }); }}>
                       <Plus className="w-3.5 h-3.5" />
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => deleteSubject(subject.id)}>
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => void deleteSubject(subject.id)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -193,7 +209,7 @@ export default function Library() {
                               <Button size="sm" variant="ghost" className="h-6 px-2" title="Add subtopic" onClick={() => { setInputName(''); setAddDialog({ type: 'subtopic', parentId: topic.id }); }}>
                                 <Plus className="w-3 h-3" />
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-6 px-2 text-destructive hover:text-destructive" onClick={() => deleteTopic(topic.id)}>
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-destructive hover:text-destructive" onClick={() => void deleteTopic(topic.id)}>
                                 <Trash2 className="w-3 h-3" />
                               </Button>
                             </div>
@@ -211,7 +227,7 @@ export default function Library() {
                                     <Progress value={video.progress} className="h-1 w-12" />
                                     <Button
                                       size="sm" variant="ghost" className="h-6 px-1 opacity-0 group-hover:opacity-100"
-                                      onClick={e => { e.preventDefault(); setVideos(vs => vs.filter(v => v.id !== video.id)); }}
+                                      onClick={e => { e.preventDefault(); void deleteVideo(video.id); }}
                                     >
                                       <Trash2 className="w-3 h-3 text-destructive" />
                                     </Button>
@@ -241,7 +257,7 @@ export default function Library() {
                                         <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => { setInputName(''); setInputUrl(''); setAddDialog({ type: 'video', parentId: subtopic.id }); }}>
                                           <Plus className="w-3 h-3" />
                                         </Button>
-                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-destructive hover:text-destructive" onClick={() => setSubtopics(s => s.filter(st => st.id !== subtopic.id))}>
+                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-destructive hover:text-destructive" onClick={() => void deleteSubtopic(subtopic.id)}>
                                           <Trash2 className="w-3 h-3" />
                                         </Button>
                                       </div>
@@ -260,7 +276,7 @@ export default function Library() {
                                               <Progress value={video.progress} className="h-1 w-12" />
                                               <Button
                                                 size="sm" variant="ghost" className="h-6 px-1 opacity-0 group-hover:opacity-100"
-                                                onClick={e => { e.preventDefault(); setVideos(vs => vs.filter(v => v.id !== video.id)); }}
+                                                onClick={e => { e.preventDefault(); void deleteVideo(video.id); }}
                                               >
                                                 <Trash2 className="w-3 h-3 text-destructive" />
                                               </Button>
@@ -308,6 +324,7 @@ export default function Library() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }

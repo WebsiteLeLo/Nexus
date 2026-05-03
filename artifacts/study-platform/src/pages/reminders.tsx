@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Bell, Plus, Trash2, BellOff, BellRing } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/use-confirm";
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -18,6 +19,7 @@ export default function Reminders() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ label: '', time: '19:00', daysOfWeek: [1, 2, 3, 4, 5] as number[] });
 
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const firedRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
@@ -168,7 +170,7 @@ export default function Reminders() {
                   </Button>
                 )}
                 <Switch checked={reminder.enabled} onCheckedChange={() => toggleReminder(reminder.id)} />
-                <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => setReminders(rs => rs.filter(r => r.id !== reminder.id))}>
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={async () => { if (await confirm("Delete this reminder?")) setReminders(rs => rs.filter(r => r.id !== reminder.id)); }}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
@@ -223,6 +225,7 @@ export default function Reminders() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }

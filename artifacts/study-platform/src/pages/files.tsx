@@ -14,6 +14,7 @@ import {
   HardDrive, Loader2, AlertCircle, Home, LayoutGrid, List, ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/hooks/use-confirm";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
 const TAG_OPTIONS = ['formula', 'revision', 'important', 'reference', 'summary', 'exercise'];
@@ -289,12 +290,15 @@ export default function Files() {
     return [...s];
   }, [files]);
 
+  const { confirm, dialog: confirmDialog } = useConfirm();
+
   /* ── actions ── */
   function toggleExpanded(id: string) {
     setExpanded(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
 
-  function deleteFolder(id: string) {
+  async function deleteFolder(id: string) {
+    if (!(await confirm("Delete this folder and all its contents?"))) return;
     const collectIds = (fid: string): string[] => {
       const children = folders.filter(f => f.parentId === fid).flatMap(f => collectIds(f.id));
       return [fid, ...children];
@@ -303,6 +307,11 @@ export default function Files() {
     setFiles(fs => fs.filter(f => !ids.includes(f.folderId ?? '')));
     setFolders(fs => fs.filter(f => !ids.includes(f.id)));
     if (ids.includes(currentFolderId ?? '')) setCurrentFolderId(null);
+  }
+
+  async function deleteFile(id: string) {
+    if (!(await confirm("Delete this file?"))) return;
+    setFiles(fs => fs.filter(f => f.id !== id));
   }
 
   function addFile() {
@@ -432,7 +441,7 @@ export default function Files() {
                   currentId={currentFolderId} expanded={expanded}
                   onSelect={setCurrentFolderId}
                   onToggle={toggleExpanded}
-                  onDelete={deleteFolder}
+                  onDelete={(id) => void deleteFolder(id)}
                   depth={0}
                 />
               ))}
@@ -552,7 +561,7 @@ export default function Files() {
                         </div>
                         <button
                           className="opacity-0 group-hover:opacity-100 p-1 hover:text-destructive flex-shrink-0"
-                          onClick={e => { e.stopPropagation(); deleteFolder(sub.id); }}
+                          onClick={e => { e.stopPropagation(); void deleteFolder(sub.id); }}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -621,7 +630,7 @@ export default function Files() {
                           </a>
                           <button
                             className="p-1 bg-black/60 rounded hover:bg-red-500/80 text-white"
-                            onClick={e => { e.stopPropagation(); setFiles(fs => fs.filter(f => f.id !== file.id)); }}
+                            onClick={e => { e.stopPropagation(); void deleteFile(file.id); }}
                           ><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </div>
@@ -658,7 +667,7 @@ export default function Files() {
                             <Button size="sm" variant="ghost" className="h-7 px-2"><ExternalLink className="w-3.5 h-3.5" /></Button>
                           </a>
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive"
-                            onClick={e => { e.stopPropagation(); setFiles(fs => fs.filter(f => f.id !== file.id)); }}>
+                            onClick={e => { e.stopPropagation(); void deleteFile(file.id); }}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
@@ -828,6 +837,7 @@ export default function Files() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }
