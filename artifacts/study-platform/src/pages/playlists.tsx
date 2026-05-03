@@ -93,6 +93,34 @@ export default function Playlists() {
   const [showRename, setShowRename] = useState(false);
   const [renameValue, setRenameValue] = useState('');
 
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  function handleDragStart(i: number) {
+    setDragIndex(i);
+  }
+
+  function handleDragOver(e: React.DragEvent, i: number) {
+    e.preventDefault();
+    setOverIndex(i);
+  }
+
+  function handleDrop(e: React.DragEvent, i: number) {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === i || !currentPlaylist) return;
+    const ids = [...currentPlaylist.videoIds];
+    const [moved] = ids.splice(dragIndex, 1);
+    ids.splice(i, 0, moved);
+    setPlaylists(ps => ps.map(p => p.id === currentPlaylist.id ? { ...p, videoIds: ids } : p));
+    setDragIndex(null);
+    setOverIndex(null);
+  }
+
+  function handleDragEnd() {
+    setDragIndex(null);
+    setOverIndex(null);
+  }
+
   function openRename() {
     if (!currentPlaylist) return;
     setRenameValue(currentPlaylist.name);
@@ -346,8 +374,20 @@ export default function Playlists() {
                 ) : (
                   <div className="space-y-2">
                     {playlistVideos.map((video, i) => video && (
-                      <div key={video.id} className="flex items-center gap-3 p-2 rounded-lg border hover:bg-muted/30 transition-colors group">
-                        <GripVertical className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
+                      <div
+                        key={video.id}
+                        draggable
+                        onDragStart={() => handleDragStart(i)}
+                        onDragOver={e => handleDragOver(e, i)}
+                        onDrop={e => handleDrop(e, i)}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          "flex items-center gap-3 p-2 rounded-lg border transition-colors group select-none",
+                          dragIndex === i ? "opacity-40" : "hover:bg-muted/30",
+                          overIndex === i && dragIndex !== i ? "border-primary bg-primary/5" : ""
+                        )}
+                      >
+                        <GripVertical className="w-4 h-4 text-muted-foreground/40 flex-shrink-0 cursor-grab active:cursor-grabbing" />
                         <span className="text-xs text-muted-foreground w-6 text-right flex-shrink-0">{i + 1}</span>
                         <img src={video.thumbnail} alt={video.title} className="w-20 h-11 object-cover rounded flex-shrink-0" />
                         <div className="flex-1 min-w-0">
