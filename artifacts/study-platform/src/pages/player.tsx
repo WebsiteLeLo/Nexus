@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "wouter";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Video, Note } from "@/lib/types";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   SkipBack, SkipForward, Plus, Trash2, Clock, CheckCircle2,
   RotateCcw, Star, Circle, ChevronLeft, List, ExternalLink,
-  AlertCircle, Play, Pause, Volume2, VolumeX, Maximize2
+  AlertCircle, Play, Pause, Volume2, VolumeX, Maximize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
@@ -18,24 +18,30 @@ import { Link } from "wouter";
 declare global {
   interface Window {
     YT: {
-      Player: new (el: HTMLIFrameElement, config: {
-        events?: {
-          onReady?: (e: { target: YTPlayer }) => void;
-          onStateChange?: (e: { data: number }) => void;
-          onError?: (e: { data: number }) => void;
-        };
-      }) => YTPlayer;
+      Player: new (
+        el: string | HTMLElement,
+        config: {
+          videoId?: string;
+          host?: string;
+          playerVars?: Record<string, unknown>;
+          events?: {
+            onReady?: (e: { target: YTPlayer }) => void;
+            onStateChange?: (e: { data: number }) => void;
+            onError?: (e: { data: number }) => void;
+          };
+        }
+      ) => YTPlayer;
       PlayerState: { PLAYING: number; PAUSED: number; ENDED: number; BUFFERING: number };
     };
     onYouTubeIframeAPIReady: () => void;
   }
 }
+
 interface YTPlayer {
   seekTo(s: number, allow: boolean): void;
   getCurrentTime(): number;
   getDuration(): number;
   setPlaybackRate(r: number): void;
-  getPlaybackRate(): number;
   playVideo(): void;
   pauseVideo(): void;
   mute(): void;
@@ -50,41 +56,44 @@ interface YTPlayer {
 /* ── constants ─────────────────────────────────────────────────────────── */
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const STATUS_OPTIONS = [
-  { value: 'pending',   label: 'Pending',      icon: Circle,       color: 'text-muted-foreground' },
-  { value: 'completed', label: 'Completed',    icon: CheckCircle2, color: 'text-emerald-500' },
-  { value: 'revise',    label: 'Revise Later', icon: RotateCcw,    color: 'text-amber-500' },
-  { value: 'important', label: 'Important',    icon: Star,         color: 'text-violet-500' },
+  { value: "pending",   label: "Pending",      icon: Circle,       color: "text-muted-foreground" },
+  { value: "completed", label: "Completed",    icon: CheckCircle2, color: "text-emerald-500" },
+  { value: "revise",    label: "Revise Later", icon: RotateCcw,    color: "text-amber-500" },
+  { value: "important", label: "Important",    icon: Star,         color: "text-violet-500" },
 ];
 
-/* ── custom seekbar ────────────────────────────────────────────────────── */
-function SeekBar({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+/* ── SeekBar ────────────────────────────────────────────────────────────── */
+function SeekBar({ value, onSeek }: { value: number; onSeek: (v: number) => void }) {
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    onSeek(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
+  }
   return (
-    <div className="relative group flex-1 flex items-center h-5 cursor-pointer"
-      onClick={e => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        onChange(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
-      }}
+    <div
+      className="relative group flex-1 flex items-center h-5 cursor-pointer"
+      onClick={handleClick}
     >
-      <div className="h-1 w-full rounded-full bg-white/20 overflow-hidden group-hover:h-1.5 transition-all">
+      <div className="h-1 w-full rounded-full bg-white/20 overflow-visible group-hover:h-1.5 transition-all">
         <div className="h-full bg-primary rounded-full" style={{ width: `${value * 100}%` }} />
       </div>
       <div
-        className="absolute w-3 h-3 bg-primary rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity -translate-x-1/2"
-        style={{ left: `${value * 100}%` }}
+        className="absolute w-3 h-3 bg-primary rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+        style={{ left: `${value * 100}%`, transform: "translateX(-50%)" }}
       />
     </div>
   );
 }
 
-/* ── volume bar ─────────────────────────────────────────────────────────── */
+/* ── VolumeBar ──────────────────────────────────────────────────────────── */
 function VolumeBar({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    onChange(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
+  }
   return (
-    <div className="relative flex items-center h-5 w-16 cursor-pointer"
-      onClick={e => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        onChange(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
-      }}
-    >
+    <div className="relative flex items-center h-5 w-16 cursor-pointer" onClick={handleClick}>
       <div className="h-1 w-full rounded-full bg-white/20 overflow-hidden">
         <div className="h-full bg-white/80 rounded-full" style={{ width: `${value * 100}%` }} />
       </div>
@@ -93,92 +102,133 @@ function VolumeBar({ value, onChange }: { value: number; onChange: (v: number) =
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   Main component
-═══════════════════════════════════════════════════════════════════════════ */
+   Main Player
+══════════════════════════════════════════════════════════════════════════ */
 export default function Player() {
   const { videoId } = useParams<{ videoId: string }>();
-  const [videos, setVideos] = useLocalStorage<Video[]>('nexus-videos', []);
-  const [notes, setNotes] = useLocalStorage<Note[]>('nexus-notes', []);
+  const [videos, setVideos] = useLocalStorage<Video[]>("nexus-videos", []);
+  const [notes, setNotes]   = useLocalStorage<Note[]>("nexus-notes",   []);
 
   const video = videos.find(v => v.id === videoId);
 
-  /* player state */
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const playerRef = useRef<YTPlayer | null>(null);
-  const [apiReady, setApiReady] = useState(!!window.YT?.Player);
-  const [playing, setPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [muted, setMuted] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [playerError, setPlayerError] = useState(false);
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /* refs */
+  const containerRef = useRef<HTMLDivElement>(null); // div that YT replaces with iframe
+  const wrapRef      = useRef<HTMLDivElement>(null); // outer video wrapper for fullscreen
+  const playerRef    = useRef<YTPlayer | null>(null);
+  const tickRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hideRef      = useRef<ReturnType<typeof setTimeout>  | null>(null);
 
-  /* notes state */
-  const [noteText, setNoteText] = useState('');
+  /* state */
+  const [apiReady,       setApiReady]       = useState(false);
+  const [playing,        setPlaying]        = useState(false);
+  const [currentTime,    setCurrentTime]    = useState(0);
+  const [duration,       setDuration]       = useState(0);
+  const [volume,         setVolume]         = useState(1);
+  const [muted,          setMuted]          = useState(false);
+  const [speed,          setSpeed]          = useState(1);
+  const [playerError,    setPlayerError]    = useState(false);
+  const [ctrlVisible,    setCtrlVisible]    = useState(true);
+
+  /* notes */
+  const [noteText,  setNoteText]  = useState("");
   const [showNotes, setShowNotes] = useState(true);
   const videoNotes = notes
     .filter(n => n.videoId === videoId)
     .sort((a, b) => a.timestamp - b.timestamp);
 
-  /* ── Load YT IFrame API ───────────────────────────────────────────────── */
+  /* ── 1. Load YT script once ─────────────────────────────────────────── */
   useEffect(() => {
-    if (window.YT?.Player) { setApiReady(true); return; }
-    if (!document.getElementById('yt-api-script')) {
-      const tag = document.createElement('script');
-      tag.id = 'yt-api-script';
-      tag.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(tag);
+    function markReady() { setApiReady(true); }
+    if (window.YT?.Player) { markReady(); return; }
+
+    // If script already injected (e.g. HMR), just wait for callback
+    window.onYouTubeIframeAPIReady = markReady;
+
+    if (!document.getElementById("yt-api-script")) {
+      const s = document.createElement("script");
+      s.id  = "yt-api-script";
+      s.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(s);
     }
-    window.onYouTubeIframeAPIReady = () => setApiReady(true);
-    return () => { window.onYouTubeIframeAPIReady = () => {}; };
+    return () => { /* leave script in DOM so it only loads once */ };
   }, []);
 
-  /* ── Init player ─────────────────────────────────────────────────────── */
+  /* ── 2. Init player when API + video are ready ──────────────────────── */
   useEffect(() => {
-    if (!apiReady || !video || !iframeRef.current) return;
+    if (!apiReady || !video || !containerRef.current) return;
 
     setPlayerError(false);
-    if (playerRef.current) { try { playerRef.current.destroy(); } catch (_) {} playerRef.current = null; }
+    setPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
 
-    playerRef.current = new window.YT.Player(iframeRef.current, {
+    // Clean up any previous instance
+    if (tickRef.current) clearInterval(tickRef.current);
+    if (playerRef.current) {
+      try { playerRef.current.destroy(); } catch (_) {}
+      playerRef.current = null;
+    }
+
+    // Reset the container div so YT can replace it with a fresh iframe
+    containerRef.current.innerHTML = "";
+
+    playerRef.current = new window.YT.Player(containerRef.current, {
+      videoId:    video.youtubeId,
+      host:       "https://www.youtube-nocookie.com", // privacy-enhanced, less embedding restrictions
+      playerVars: {
+        autoplay:       1,
+        controls:       0,  // hide ALL native YouTube UI
+        disablekb:      1,  // block YouTube keyboard shortcuts
+        rel:            0,
+        modestbranding: 1,
+        iv_load_policy: 3,
+        fs:             0,  // hide YouTube fullscreen button
+        playsinline:    1,
+        start:          Math.floor(video.lastTimestamp || 0),
+        origin:         window.location.origin,
+      },
       events: {
         onReady: (e) => {
           const p = e.target;
-          p.setPlaybackRate(speed);
-          setDuration(p.getDuration());
-          setVolume(p.getVolume() / 100);
-          setMuted(p.isMuted());
-          // Start tick
+          try {
+            p.setPlaybackRate(speed);
+            setDuration(p.getDuration());
+            setVolume(p.getVolume() / 100);
+            setMuted(p.isMuted());
+          } catch (_) {}
+
           tickRef.current = setInterval(() => {
             if (!playerRef.current) return;
             try {
-              const t = playerRef.current.getCurrentTime();
+              const t   = playerRef.current.getCurrentTime();
               const dur = playerRef.current.getDuration();
               setCurrentTime(t);
-              if (!duration && dur > 0) setDuration(dur);
               if (dur > 0) {
-                const prog = Math.round((t / dur) * 100);
-                setVideos(vs => vs.map(v =>
-                  v.id === videoId ? { ...v, lastTimestamp: t, progress: prog } : v
-                ));
+                setDuration(dur);
+                setVideos(vs =>
+                  vs.map(v =>
+                    v.id === videoId
+                      ? { ...v, lastTimestamp: t, progress: Math.round((t / dur) * 100) }
+                      : v
+                  )
+                );
               }
             } catch (_) {}
           }, 500);
         },
+
         onStateChange: (e) => {
-          const YT = window.YT;
-          setPlaying(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
-          if (e.data === YT.PlayerState.ENDED) {
+          const { PLAYING, BUFFERING, ENDED } = window.YT.PlayerState;
+          const isPlaying = e.data === PLAYING || e.data === BUFFERING;
+          setPlaying(isPlaying);
+          if (e.data === ENDED) {
             setPlaying(false);
-            setVideos(vs => vs.map(v =>
-              v.id === videoId ? { ...v, status: 'completed', progress: 100 } : v
-            ));
+            setVideos(vs =>
+              vs.map(v => v.id === videoId ? { ...v, status: "completed", progress: 100 } : v)
+            );
           }
         },
+
         onError: () => {
           setPlayerError(true);
           if (tickRef.current) clearInterval(tickRef.current);
@@ -188,69 +238,66 @@ export default function Player() {
 
     return () => {
       if (tickRef.current) clearInterval(tickRef.current);
+      if (hideRef.current)  clearTimeout(hideRef.current);
       try { playerRef.current?.destroy(); } catch (_) {}
       playerRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiReady, video?.youtubeId]);
 
-  /* ── Controls auto-hide ──────────────────────────────────────────────── */
-  const showControls = useCallback(() => {
-    setControlsVisible(true);
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    if (playing) {
-      hideTimer.current = setTimeout(() => setControlsVisible(false), 3000);
-    }
-  }, [playing]);
+  /* ── Controls auto-hide ─────────────────────────────────────────────── */
+  function showCtrl() {
+    setCtrlVisible(true);
+    if (hideRef.current) clearTimeout(hideRef.current);
+    hideRef.current = setTimeout(() => {
+      if (playerRef.current) {
+        try {
+          if (playerRef.current.getPlayerState() === window.YT?.PlayerState?.PLAYING) {
+            setCtrlVisible(false);
+          }
+        } catch (_) {}
+      }
+    }, 3000);
+  }
 
-  useEffect(() => { showControls(); }, [playing]);
-
-  /* ── Keyboard shortcuts ──────────────────────────────────────────────── */
+  /* ── Keyboard shortcuts ─────────────────────────────────────────────── */
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "TEXTAREA" || tag === "INPUT") return;
       if (!playerRef.current) return;
-      if ((e.target as HTMLElement).tagName === 'TEXTAREA') return;
-      const p = playerRef.current;
-      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-      if (e.code === 'ArrowLeft')  { e.preventDefault(); seek(p.getCurrentTime() - 10); }
-      if (e.code === 'ArrowRight') { e.preventDefault(); seek(p.getCurrentTime() + 10); }
-      if (e.code === 'ArrowUp')   { e.preventDefault(); changeVolume(Math.min(1, volume + 0.1)); }
-      if (e.code === 'ArrowDown') { e.preventDefault(); changeVolume(Math.max(0, volume - 0.1)); }
-      if (e.code === 'KeyM') { e.preventDefault(); toggleMute(); }
+      try {
+        if (e.code === "Space")      { e.preventDefault(); togglePlay(); }
+        if (e.code === "ArrowLeft")  { e.preventDefault(); seek(playerRef.current.getCurrentTime() - 10); }
+        if (e.code === "ArrowRight") { e.preventDefault(); seek(playerRef.current.getCurrentTime() + 10); }
+        if (e.code === "KeyM")       { e.preventDefault(); toggleMute(); }
+      } catch (_) {}
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [volume, playing]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [muted]);
 
-  /* ── Player controls ─────────────────────────────────────────────────── */
+  /* ── Actions ────────────────────────────────────────────────────────── */
   function togglePlay() {
     if (!playerRef.current) return;
     try {
       const state = playerRef.current.getPlayerState();
-      if (state === window.YT.PlayerState.PLAYING) {
-        playerRef.current.pauseVideo();
-      } else {
-        playerRef.current.playVideo();
-      }
+      if (state === window.YT.PlayerState.PLAYING) playerRef.current.pauseVideo();
+      else playerRef.current.playVideo();
     } catch (_) {}
   }
 
   function seek(t: number) {
-    try {
-      playerRef.current?.seekTo(Math.max(0, t), true);
-      setCurrentTime(Math.max(0, t));
-    } catch (_) {}
+    try { playerRef.current?.seekTo(Math.max(0, t), true); setCurrentTime(Math.max(0, t)); }
+    catch (_) {}
   }
 
   function changeVolume(v: number) {
     try {
       setVolume(v);
       playerRef.current?.setVolume(v * 100);
-      if (v > 0 && muted) {
-        playerRef.current?.unMute();
-        setMuted(false);
-      }
+      if (v > 0 && muted) { playerRef.current?.unMute(); setMuted(false); }
     } catch (_) {}
   }
 
@@ -262,10 +309,11 @@ export default function Player() {
   }
 
   function changeSpeed(s: number) {
-    try {
-      setSpeed(s);
-      playerRef.current?.setPlaybackRate(s);
-    } catch (_) {}
+    try { setSpeed(s); playerRef.current?.setPlaybackRate(s); } catch (_) {}
+  }
+
+  function enterFullscreen() {
+    if (wrapRef.current?.requestFullscreen) wrapRef.current.requestFullscreen();
   }
 
   function addNote() {
@@ -277,24 +325,14 @@ export default function Player() {
       content: noteText.trim(),
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     }]);
-    setNoteText('');
+    setNoteText("");
   }
 
-  function seekToNote(ts: number) {
-    seek(ts);
-    try { playerRef.current?.playVideo(); } catch (_) {}
-  }
-
-  function fullscreen() {
-    const el = document.getElementById('player-wrap');
-    if (el?.requestFullscreen) el.requestFullscreen();
-  }
-
-  function setStatus(status: Video['status']) {
+  function setStatus(status: Video["status"]) {
     setVideos(vs => vs.map(v => v.id === videoId ? { ...v, status } : v));
   }
 
-  /* ── Guard ───────────────────────────────────────────────────────────── */
+  /* ── Guard ──────────────────────────────────────────────────────────── */
   if (!video) {
     return (
       <div className="flex-1 flex items-center justify-center flex-col gap-4">
@@ -306,28 +344,12 @@ export default function Player() {
 
   const currentStatus = STATUS_OPTIONS.find(s => s.value === video.status) ?? STATUS_OPTIONS[0];
   const StatusIcon = currentStatus.icon;
-  const progress = duration > 0 ? currentTime / duration : 0;
-
-  /* build nocookie embed URL — controls=0 hides all native YouTube UI */
-  const embedUrl = (() => {
-    const p = new URLSearchParams({
-      enablejsapi: '1',
-      controls:    '0',      // ← hides YouTube controls
-      disablekb:   '1',      // ← disables YouTube keyboard shortcuts
-      rel:         '0',
-      modestbranding: '1',
-      iv_load_policy: '3',
-      fs:          '0',      // ← hide YouTube fullscreen btn (we have our own)
-      playsinline: '1',
-      start:       String(Math.floor(video.lastTimestamp || 0)),
-      origin:      window.location.origin,
-    });
-    return `https://www.youtube-nocookie.com/embed/${video.youtubeId}?${p}`;
-  })();
+  const seekPct = duration > 0 ? currentTime / duration : 0;
 
   return (
     <div className="flex h-full overflow-hidden bg-background">
-      {/* ── Left: Video + Controls ──────────────────────────────────────── */}
+
+      {/* ── Video column ───────────────────────────────────────────────── */}
       <div className={cn("flex flex-col overflow-hidden", showNotes ? "flex-1" : "w-full")}>
 
         {/* Top bar */}
@@ -338,10 +360,12 @@ export default function Player() {
             </Button>
           </Link>
           <h1 className="text-sm font-semibold line-clamp-1 flex-1 min-w-0">{video.title}</h1>
-          <Select value={video.status} onValueChange={v => setStatus(v as Video['status'])}>
+
+          {/* Status selector */}
+          <Select value={video.status} onValueChange={v => setStatus(v as Video["status"])}>
             <SelectTrigger className="h-7 w-36 text-xs border-0 bg-muted/50 flex-shrink-0">
               <div className="flex items-center gap-1.5">
-                <StatusIcon className={cn("w-3.5 h-3.5 flex-shrink-0", currentStatus.color)} />
+                <StatusIcon className={cn("w-3.5 h-3.5", currentStatus.color)} />
                 <span>{currentStatus.label}</span>
               </div>
             </SelectTrigger>
@@ -359,58 +383,45 @@ export default function Player() {
               })}
             </SelectContent>
           </Select>
+
           <a href={video.url} target="_blank" rel="noopener noreferrer" title="Open on YouTube">
-            <Button size="sm" variant="ghost" className="h-7 px-2 flex-shrink-0">
-              <ExternalLink className="w-4 h-4" />
-            </Button>
+            <Button size="sm" variant="ghost" className="h-7 px-2"><ExternalLink className="w-4 h-4" /></Button>
           </a>
-          <Button size="sm" variant="ghost" className="h-7 px-2 flex-shrink-0" onClick={() => setShowNotes(s => !s)}>
+          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setShowNotes(s => !s)}>
             <List className="w-4 h-4" />
           </Button>
         </div>
 
-        {/* Video area */}
+        {/* ── Video area ────────────────────────────────────────────────── */}
         <div
-          id="player-wrap"
+          ref={wrapRef}
           className="relative bg-black flex-shrink-0 select-none"
-          style={{ paddingBottom: '56.25%' }}
-          onMouseMove={showControls}
-          onMouseLeave={() => { if (playing) setControlsVisible(false); }}
+          style={{ paddingBottom: "56.25%" }}
+          onMouseMove={showCtrl}
+          onMouseLeave={() => { if (playing) setCtrlVisible(false); }}
         >
-          {/* YouTube iframe — NO native controls */}
-          <iframe
-            ref={iframeRef}
-            src={embedUrl}
-            allow="autoplay; encrypted-media; fullscreen"
-            allowFullScreen
-            className="absolute inset-0 w-full h-full border-0"
-            title={video.title}
-          />
+          {/* YT replaces this div with an iframe */}
+          <div ref={containerRef} className="absolute inset-0 w-full h-full" />
 
-          {/* ── Transparent interaction layer ─────────────────────────── */}
-          {/* Covers the whole video to block YouTube's click-to-YouTube and
-              related-video overlays; forwards click to our play/pause. */}
+          {/* Transparent capture layer — blocks YouTube UI, forwards clicks */}
           <div
             className="absolute inset-0"
-            style={{ cursor: controlsVisible ? 'default' : 'none' }}
-            onClick={togglePlay}
+            style={{ cursor: ctrlVisible ? "default" : "none" }}
+            onClick={e => { e.stopPropagation(); togglePlay(); showCtrl(); }}
           />
 
-          {/* ── Centre play/pause pulse ──────────────────────────────── */}
+          {/* Centre play icon when paused */}
           {!playing && !playerError && (
-            <div
-              className="absolute inset-0 flex items-center justify-center pointer-events-none"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
                 <Play className="w-7 h-7 text-white ml-1" fill="white" />
               </div>
             </div>
           )}
 
-          {/* ── Error overlay ────────────────────────────────────────── */}
+          {/* Error overlay */}
           {playerError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 gap-4 p-6 text-center pointer-events-auto">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 gap-4 p-6 text-center pointer-events-auto z-10">
               <AlertCircle className="w-10 h-10 text-amber-400" />
               <div>
                 <p className="font-semibold text-white">This video can't be embedded</p>
@@ -423,23 +434,22 @@ export default function Player() {
             </div>
           )}
 
-          {/* ── Custom control bar (slides in/out) ───────────────────── */}
+          {/* ── Custom control bar ──────────────────────────────────────── */}
           <div
             className={cn(
-              "absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-4 pt-8 pb-3 transition-opacity duration-300 pointer-events-none",
-              controlsVisible ? "opacity-100 pointer-events-auto" : "opacity-0"
+              "absolute bottom-0 inset-x-0 z-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent",
+              "px-4 pt-8 pb-3 transition-opacity duration-300",
+              ctrlVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             )}
             onClick={e => e.stopPropagation()}
           >
             {/* Seek bar */}
-            <SeekBar
-              value={progress}
-              onChange={v => seek(v * duration)}
-            />
+            <SeekBar value={seekPct} onSeek={v => seek(v * duration)} />
 
-            {/* Buttons row */}
-            <div className="flex items-center gap-2 mt-2">
-              {/* Play/Pause */}
+            {/* Controls row */}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+
+              {/* Play / Pause */}
               <button
                 className="w-8 h-8 flex items-center justify-center text-white hover:text-primary transition-colors"
                 onClick={togglePlay}
@@ -466,20 +476,14 @@ export default function Player() {
                 10<SkipForward className="w-4 h-4" />
               </button>
 
-              {/* Volume */}
-              <button
-                className="text-white/80 hover:text-white transition-colors"
-                onClick={toggleMute}
-              >
-                {muted || volume === 0
-                  ? <VolumeX className="w-4 h-4" />
-                  : <Volume2 className="w-4 h-4" />
-                }
+              {/* Mute */}
+              <button className="text-white/80 hover:text-white transition-colors" onClick={toggleMute}>
+                {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
               <VolumeBar value={muted ? 0 : volume} onChange={changeVolume} />
 
               {/* Time */}
-              <span className="text-xs text-white/80 font-mono ml-1 tabular-nums">
+              <span className="text-xs text-white/80 font-mono tabular-nums ml-1">
                 {formatTimestamp(currentTime)}
                 {duration > 0 && <span className="text-white/50"> / {formatTimestamp(duration)}</span>}
               </span>
@@ -495,8 +499,8 @@ export default function Player() {
                     className={cn(
                       "text-xs px-1.5 py-0.5 rounded transition-colors",
                       speed === s
-                        ? 'bg-primary text-white'
-                        : 'text-white/60 hover:text-white hover:bg-white/10'
+                        ? "bg-primary text-white"
+                        : "text-white/60 hover:text-white hover:bg-white/10"
                     )}
                   >
                     {s}x
@@ -507,7 +511,7 @@ export default function Player() {
               {/* Fullscreen */}
               <button
                 className="text-white/80 hover:text-white transition-colors ml-1"
-                onClick={fullscreen}
+                onClick={enterFullscreen}
               >
                 <Maximize2 className="w-4 h-4" />
               </button>
@@ -523,7 +527,7 @@ export default function Player() {
         )}
       </div>
 
-      {/* ── Right: Notes panel ─────────────────────────────────────────── */}
+      {/* ── Notes panel ────────────────────────────────────────────────── */}
       {showNotes && (
         <div className="w-80 border-l flex flex-col overflow-hidden flex-shrink-0">
           <div className="px-4 py-3 border-b flex-shrink-0">
@@ -540,7 +544,7 @@ export default function Player() {
               rows={3}
               className="text-sm resize-none mb-2"
               onKeyDown={e => {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                   e.preventDefault(); addNote();
                 }
               }}
@@ -569,10 +573,9 @@ export default function Player() {
                 <div className="flex items-center justify-between mb-1.5">
                   <button
                     className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-mono font-medium"
-                    onClick={() => seekToNote(note.timestamp)}
+                    onClick={() => { seek(note.timestamp); try { playerRef.current?.playVideo(); } catch (_) {} }}
                   >
-                    <Clock className="w-3 h-3" />
-                    {formatTimestamp(note.timestamp)}
+                    <Clock className="w-3 h-3" />{formatTimestamp(note.timestamp)}
                   </button>
                   <button
                     className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
