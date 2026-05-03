@@ -159,6 +159,7 @@ export default function Player() {
   const [playerError,    setPlayerError]    = useState(false);
   const [ctrlVisible,    setCtrlVisible]    = useState(true);
   const [cssFullscreen,  setCssFullscreen]  = useState(false);
+  const [nativeFs,       setNativeFs]       = useState(false);
   const [showRename,     setShowRename]     = useState(false);
   const [renameValue,    setRenameValue]    = useState("");
   const [quality,        setQuality]        = useState('auto');
@@ -371,20 +372,23 @@ export default function Player() {
   }
 
   function toggleFullscreen() {
-    // Native fullscreen first; fall back to CSS overlay (works inside iframes)
-    if (!cssFullscreen) {
-      const el = wrapRef.current;
-      const req = el?.requestFullscreen ?? (el as unknown as { webkitRequestFullscreen?: () => Promise<void> })?.webkitRequestFullscreen;
-      if (req && document.fullscreenEnabled) {
-        req.call(el).catch(() => setCssFullscreen(true));
-      } else {
-        setCssFullscreen(true);
-      }
-    } else {
+    if (nativeFs) {
+      // Exit native fullscreen
+      document.exitFullscreen().catch(() => {});
+      return;
+    }
+    if (cssFullscreen) {
+      // Exit CSS fullscreen
       setCssFullscreen(false);
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
+      return;
+    }
+    // Try native fullscreen first; fall back to CSS overlay
+    const el = wrapRef.current;
+    const req = el?.requestFullscreen ?? (el as unknown as { webkitRequestFullscreen?: () => Promise<void> })?.webkitRequestFullscreen;
+    if (req && document.fullscreenEnabled) {
+      req.call(el).catch(() => setCssFullscreen(true));
+    } else {
+      setCssFullscreen(true);
     }
   }
 
@@ -397,13 +401,19 @@ export default function Player() {
     return () => document.removeEventListener('keydown', onKey);
   }, [cssFullscreen]);
 
-  // Sync CSS fullscreen when native fullscreen exits via browser UI
+  // Track native fullscreen state changes
   useEffect(() => {
     function onFsChange() {
-      if (!document.fullscreenElement && cssFullscreen) setCssFullscreen(false);
+      const active = !!document.fullscreenElement;
+      setNativeFs(active);
+      if (!active && cssFullscreen) setCssFullscreen(false);
     }
     document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+    };
   }, [cssFullscreen]);
 
   function addNote() {
@@ -659,7 +669,7 @@ export default function Player() {
                 className="text-white/80 hover:text-white transition-colors ml-1"
                 onClick={toggleFullscreen}
               >
-                {cssFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                {(cssFullscreen || nativeFs) ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
             </div>
           </div>
