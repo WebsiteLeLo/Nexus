@@ -225,10 +225,10 @@ export default function Files() {
                 <SelectItem value="drive">Google Drive</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={form.folderId} onValueChange={v => setForm(f => ({ ...f, folderId: v }))}>
+            <Select value={form.folderId || '__none__'} onValueChange={v => setForm(f => ({ ...f, folderId: v === '__none__' ? '' : v }))}>
               <SelectTrigger><SelectValue placeholder="Select folder (optional)" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No folder</SelectItem>
+                <SelectItem value="__none__">No folder</SelectItem>
                 {folders.map(folder => <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>)}
               </SelectContent>
             </Select>
