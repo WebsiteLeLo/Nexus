@@ -7,23 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, FolderOpen, File, FileImage, Link as LinkIcon, ExternalLink, Trash2, Eye, Tag, X } from "lucide-react";
+import { Plus, FolderOpen, File, FileImage, Link as LinkIcon, ExternalLink, Trash2, Eye, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const INITIAL_FOLDERS: Folder[] = [
-  { id: 'f1', name: 'Physics Notes', order: 1 },
-  { id: 'f2', name: 'Math Resources', order: 2 }
-];
-
-const INITIAL_FILES: FileItem[] = [
-  { id: 'fi1', name: 'Kinematics Cheat Sheet', type: 'link', url: 'https://example.com/kinematics.pdf', folderId: 'f1', tags: ['formula', 'revision'], addedAt: new Date().toISOString() }
-];
 
 const TAG_OPTIONS = ['formula', 'revision', 'important', 'reference', 'summary', 'exercise'];
 
 export default function Files() {
-  const [files, setFiles] = useLocalStorage<FileItem[]>('nexus-files', INITIAL_FILES);
-  const [folders, setFolders] = useLocalStorage<Folder[]>('nexus-folders', INITIAL_FOLDERS);
+  const [files, setFiles] = useLocalStorage<FileItem[]>('nexus-files', []);
+  const [folders, setFolders] = useLocalStorage<Folder[]>('nexus-folders', []);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<string>('');
@@ -158,7 +149,8 @@ export default function Files() {
             {displayedFiles.length === 0 && (
               <div className="text-center py-16 text-muted-foreground">
                 <File className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                <p className="text-sm">No files found</p>
+                <p className="text-sm font-medium">{files.length === 0 ? 'No files yet' : 'No files match your filter'}</p>
+                {files.length === 0 && <p className="text-xs mt-1">Click "Add File" to add PDFs, links, or resources.</p>}
               </div>
             )}
             <div className="space-y-2">
@@ -214,7 +206,7 @@ export default function Files() {
         <DialogContent>
           <DialogHeader><DialogTitle>Add File / Link</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+            <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
             <Input placeholder="URL or link" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} />
             <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v as FileItem['type'] }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -250,7 +242,7 @@ export default function Files() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
-            <Button onClick={addFile}>Add</Button>
+            <Button onClick={addFile} disabled={!form.name.trim() || !form.url.trim()}>Add</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -259,10 +251,10 @@ export default function Files() {
       <Dialog open={showAddFolder} onOpenChange={setShowAddFolder}>
         <DialogContent>
           <DialogHeader><DialogTitle>New Folder</DialogTitle></DialogHeader>
-          <Input placeholder="Folder name" value={newFolder} onChange={e => setNewFolder(e.target.value)} onKeyDown={e => e.key === 'Enter' && addFolder()} />
+          <Input placeholder="Folder name" value={newFolder} onChange={e => setNewFolder(e.target.value)} onKeyDown={e => e.key === 'Enter' && addFolder()} autoFocus />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddFolder(false)}>Cancel</Button>
-            <Button onClick={addFolder}>Create</Button>
+            <Button onClick={addFolder} disabled={!newFolder.trim()}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
