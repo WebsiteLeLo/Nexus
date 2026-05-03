@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Video, Note, INITIAL_VIDEOS, INITIAL_NOTES } from "@/lib/types";
+import { Video, Note } from "@/lib/types";
 import { generateId, formatTimestamp } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   SkipBack, SkipForward, Plus, Trash2, Clock, CheckCircle2,
-  RotateCcw, Star, Circle, ChevronLeft, ChevronRight, Play, List
+  RotateCcw, Star, Circle, ChevronLeft, List, ExternalLink, AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
@@ -18,11 +18,11 @@ import { Link } from "wouter";
 declare global {
   interface Window {
     YT: {
-      Player: new (id: string, config: {
-        playerVars?: Record<string, unknown>;
+      Player: new (el: string | HTMLIFrameElement, config: {
         events?: {
           onReady?: (e: { target: YTPlayer }) => void;
           onStateChange?: (e: { data: number }) => void;
+          onError?: (e: { data: number }) => void;
         };
       }) => YTPlayer;
       PlayerState: { PLAYING: number; PAUSED: number; ENDED: number };
@@ -43,111 +43,149 @@ interface YTPlayer {
 
 const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const STATUS_OPTIONS = [
-  { value: 'pending', label: 'Pending', icon: Circle, color: 'text-muted-foreground' },
+  { value: 'pending',   label: 'Pending',   icon: Circle,       color: 'text-muted-foreground' },
   { value: 'completed', label: 'Completed', icon: CheckCircle2, color: 'text-emerald-500' },
-  { value: 'revise', label: 'Revise Later', icon: RotateCcw, color: 'text-amber-500' },
-  { value: 'important', label: 'Important', icon: Star, color: 'text-violet-500' },
+  { value: 'revise',    label: 'Revise Later', icon: RotateCcw,  color: 'text-amber-500' },
+  { value: 'important', label: 'Important', icon: Star,         color: 'text-violet-500' },
 ];
 
 export default function Player() {
   const params = useParams<{ videoId: string }>();
   const [, setLocation] = useLocation();
-  const [videos, setVideos] = useLocalStorage<Video[]>('nexus-videos', INITIAL_VIDEOS);
-  const [notes, setNotes] = useLocalStorage<Note[]>('nexus-notes', INITIAL_NOTES);
+  const [videos, setVideos] = useLocalStorage<Video[]>('nexus-videos', []);
+  const [notes, setNotes] = useLocalStorage<Note[]>('nexus-notes', []);
 
   const video = videos.find(v => v.id === params.videoId);
   const playerRef = useRef<YTPlayer | null>(null);
-  const playerDivRef = useRef<HTMLDivElement>(null);
-  const [apiReady, setApiReady] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [apiReady, setApiReady] = useState(!!window.YT);
   const [noteText, setNoteText] = useState('');
   const [currentTime, setCurrentTime] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [showNotes, setShowNotes] = useState(true);
+  const [playerError, setPlayerError] = useState(false);
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const videoNotes = notes.filter(n => n.videoId === params.videoId)
+  const videoNotes = notes
+    .filter(n => n.videoId === params.videoId)
     .sort((a, b) => a.timestamp - b.timestamp);
 
-  // Load YouTube IFrame API
+  // Load YouTube IFrame API once
   useEffect(() => {
-    if (window.YT) { setApiReady(true); return; }
+    if (window.YT?.Player) { setApiReady(true); return; }
+    if (document.getElementById('yt-api-script')) {
+      window.onYouTubeIframeAPIReady = () => setApiReady(true);
+      return;
+    }
     const tag = document.createElement('script');
+    tag.id = 'yt-api-script';
     tag.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(tag);
     window.onYouTubeIframeAPIReady = () => setApiReady(true);
     return () => { window.onYouTubeIframeAPIReady = () => {}; };
   }, []);
 
-  // Init player
+  // Init player — build iframe pointing to youtube-nocookie.com manually so
+  // we avoid the stricter embedding restrictions of youtube.com
   useEffect(() => {
-    if (!apiReady || !video || !playerDivRef.current) return;
-    if (playerRef.current) { playerRef.current.destroy(); }
+    if (!apiReady || !video || !containerRef.current) return;
 
-    playerRef.current = new window.YT.Player('yt-player', {
-      playerVars: {
-        autoplay: 1,
-        rel: 0,
-        modestbranding: 1,
-        iv_load_policy: 3,
-        start: video.lastTimestamp || 0,
-        enablejsapi: 1
-      },
+    setPlayerError(false);
+
+    // Destroy any existing player
+    if (playerRef.current) {
+      try { playerRef.current.destroy(); } catch (_) {}
+      playerRef.current = null;
+    }
+    containerRef.current.innerHTML = '';
+
+    // Build the nocookie embed URL with all desired params
+    const params = new URLSearchParams({
+      enablejsapi: '1',
+      autoplay: '1',
+      rel: '0',
+      modestbranding: '1',
+      iv_load_policy: '3',
+      start: String(video.lastTimestamp || 0),
+      origin: window.location.origin,
+    });
+
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.youtube-nocookie.com/embed/${video.youtubeId}?${params}`;
+    iframe.allow = 'autoplay; encrypted-media; fullscreen';
+    iframe.allowFullscreen = true;
+    iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;';
+    iframe.title = video.title;
+    containerRef.current.appendChild(iframe);
+
+    // Hand the existing iframe to the YT Player API so we keep JS control
+    playerRef.current = new window.YT.Player(iframe, {
       events: {
         onReady: (e) => {
           e.target.setPlaybackRate(speed);
           progressInterval.current = setInterval(() => {
-            if (playerRef.current) {
+            if (!playerRef.current) return;
+            try {
               const t = playerRef.current.getCurrentTime();
               const dur = playerRef.current.getDuration();
               setCurrentTime(t);
               if (dur > 0) {
                 const prog = Math.round((t / dur) * 100);
                 setVideos(vs => vs.map(v =>
-                  v.id === params.videoId ? { ...v, lastTimestamp: t, progress: prog } : v
+                  v.id === video.id ? { ...v, lastTimestamp: t, progress: prog } : v
                 ));
               }
-            }
+            } catch (_) {}
           }, 2000);
         },
         onStateChange: (e) => {
           if (e.data === window.YT.PlayerState.ENDED) {
-            setVideos(vs => vs.map(v => v.id === params.videoId ? { ...v, status: 'completed', progress: 100 } : v));
+            setVideos(vs => vs.map(v =>
+              v.id === video.id ? { ...v, status: 'completed', progress: 100 } : v
+            ));
           }
-        }
-      }
+        },
+        onError: () => {
+          setPlayerError(true);
+          if (progressInterval.current) clearInterval(progressInterval.current);
+        },
+      },
     });
 
     return () => {
       if (progressInterval.current) clearInterval(progressInterval.current);
-      if (playerRef.current) { playerRef.current.destroy(); playerRef.current = null; }
+      try { playerRef.current?.destroy(); } catch (_) {}
+      playerRef.current = null;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiReady, video?.youtubeId]);
 
   useEffect(() => {
-    if (playerRef.current) playerRef.current.setPlaybackRate(speed);
+    try { playerRef.current?.setPlaybackRate(speed); } catch (_) {}
   }, [speed]);
 
   function seekTo(seconds: number) {
-    if (playerRef.current) playerRef.current.seekTo(seconds, true);
+    try { playerRef.current?.seekTo(seconds, true); } catch (_) {}
   }
 
   function skip(delta: number) {
-    if (playerRef.current) {
-      const t = playerRef.current.getCurrentTime();
+    try {
+      const t = playerRef.current?.getCurrentTime() ?? 0;
       seekTo(t + delta);
-    }
+    } catch (_) {}
   }
 
   function addNote() {
     if (!noteText.trim() || !video) return;
-    const ts = playerRef.current ? playerRef.current.getCurrentTime() : 0;
+    let ts = 0;
+    try { ts = Math.floor(playerRef.current?.getCurrentTime() ?? 0); } catch (_) {}
     setNotes(ns => [...ns, {
       id: generateId(),
       videoId: video.id,
-      timestamp: Math.floor(ts),
+      timestamp: ts,
       content: noteText.trim(),
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     }]);
     setNoteText('');
   }
@@ -207,6 +245,11 @@ export default function Player() {
               })}
             </SelectContent>
           </Select>
+          <a href={video.url} target="_blank" rel="noopener noreferrer">
+            <Button size="sm" variant="ghost" className="h-7 px-2" title="Open on YouTube">
+              <ExternalLink className="w-4 h-4" />
+            </Button>
+          </a>
           <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setShowNotes(s => !s)}>
             <List className="w-4 h-4" />
           </Button>
@@ -214,15 +257,32 @@ export default function Player() {
 
         {/* YouTube player */}
         <div className="relative bg-black flex-shrink-0" style={{ paddingBottom: '56.25%' }}>
-          <div ref={playerDivRef} id="yt-player" className="absolute inset-0 w-full h-full" />
+          <div ref={containerRef} className="absolute inset-0 w-full h-full" />
+
+          {/* Fallback overlay when video can't be embedded */}
+          {playerError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 gap-4 p-6 text-center">
+              <AlertCircle className="w-10 h-10 text-amber-400" />
+              <div>
+                <p className="font-semibold text-white">This video can't be embedded</p>
+                <p className="text-sm text-white/60 mt-1">The uploader has disabled playback outside YouTube.</p>
+              </div>
+              <a href={video.url} target="_blank" rel="noopener noreferrer">
+                <Button>
+                  <ExternalLink className="w-4 h-4 mr-2" />Watch on YouTube
+                </Button>
+              </a>
+              <p className="text-xs text-white/40">You can still take notes below — they'll be saved.</p>
+            </div>
+          )}
         </div>
 
         {/* Playback controls */}
         <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-muted/20 flex-shrink-0 flex-wrap">
-          <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => skip(-10)}>
+          <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => skip(-10)} disabled={playerError}>
             <SkipBack className="w-3.5 h-3.5 mr-1" />10s
           </Button>
-          <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => skip(10)}>
+          <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => skip(10)} disabled={playerError}>
             10s<SkipForward className="w-3.5 h-3.5 ml-1" />
           </Button>
 
@@ -230,8 +290,9 @@ export default function Player() {
             {SPEED_OPTIONS.map(s => (
               <button
                 key={s}
+                disabled={playerError}
                 className={cn(
-                  "text-xs px-2 py-1 rounded transition-colors",
+                  "text-xs px-2 py-1 rounded transition-colors disabled:opacity-40",
                   speed === s ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/70 text-muted-foreground'
                 )}
                 onClick={() => setSpeed(s)}
@@ -241,25 +302,23 @@ export default function Player() {
             ))}
           </div>
 
-          <div className="ml-auto text-xs text-muted-foreground font-mono">
-            {formatTimestamp(currentTime)}
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-xs text-muted-foreground font-mono">
+              {formatTimestamp(currentTime)}
+            </span>
+            {video.progress > 0 && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground w-28">
+                <Progress value={video.progress} className="flex-1 h-1" />
+                <span>{video.progress}%</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Progress */}
-        {video.progress > 0 && (
-          <div className="px-4 py-1.5 border-b flex-shrink-0">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Progress value={video.progress} className="flex-1 h-1" />
-              <span>{video.progress}%</span>
-            </div>
-          </div>
-        )}
-
         {/* Description */}
         {video.description && (
-          <div className="px-4 py-3 flex-shrink-0">
-            <p className="text-sm text-muted-foreground">{video.description}</p>
+          <div className="px-4 py-3 flex-shrink-0 border-b">
+            <p className="text-sm text-muted-foreground line-clamp-2">{video.description}</p>
           </div>
         )}
       </div>
@@ -287,7 +346,7 @@ export default function Player() {
                 <Clock className="w-3 h-3 inline mr-1" />
                 {formatTimestamp(currentTime)}
               </span>
-              <Button size="sm" className="h-7 px-3 text-xs" onClick={addNote}>
+              <Button size="sm" className="h-7 px-3 text-xs" onClick={addNote} disabled={!noteText.trim()}>
                 <Plus className="w-3.5 h-3.5 mr-1" />Add Note
               </Button>
             </div>
