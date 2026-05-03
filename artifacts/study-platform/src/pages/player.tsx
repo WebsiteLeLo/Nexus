@@ -53,8 +53,23 @@ interface YTPlayer {
   setVolume(v: number): void;
   getVolume(): number;
   getPlayerState(): number;
+  getPlaybackQuality(): string;
+  setPlaybackQuality(q: string): void;
+  getAvailableQualityLevels(): string[];
   destroy(): void;
 }
+
+const QUALITY_LABELS: Record<string, string> = {
+  hd2160: '4K',
+  hd1440: '1440p',
+  hd1080: '1080p',
+  hd720:  '720p',
+  large:  '480p',
+  medium: '360p',
+  small:  '240p',
+  tiny:   '144p',
+  auto:   'Auto',
+};
 
 /* ── constants ─────────────────────────────────────────────────────────── */
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -146,6 +161,9 @@ export default function Player() {
   const [cssFullscreen,  setCssFullscreen]  = useState(false);
   const [showRename,     setShowRename]     = useState(false);
   const [renameValue,    setRenameValue]    = useState("");
+  const [quality,        setQuality]        = useState('auto');
+  const [qualityLevels,  setQualityLevels]  = useState<string[]>([]);
+  const [showQuality,    setShowQuality]    = useState(false);
 
   /* notes */
   const [noteText,  setNoteText]  = useState("");
@@ -213,6 +231,15 @@ export default function Player() {
             setDuration(p.getDuration());
             setVolume(p.getVolume() / 100);
             setMuted(p.isMuted());
+            // Populate quality levels after a short delay (levels aren't
+            // always available at onReady on first load)
+            setTimeout(() => {
+              try {
+                const levels = p.getAvailableQualityLevels();
+                if (levels?.length) setQualityLevels(levels);
+                setQuality(p.getPlaybackQuality() || 'auto');
+              } catch (_) {}
+            }, 1500);
           } catch (_) {}
 
           tickRef.current = setInterval(() => {
@@ -239,6 +266,15 @@ export default function Player() {
           const { PLAYING, BUFFERING, ENDED } = window.YT.PlayerState;
           const isPlaying = e.data === PLAYING || e.data === BUFFERING;
           setPlaying(isPlaying);
+          // Refresh quality levels once buffering starts (most reliable time)
+          if (e.data === BUFFERING || e.data === PLAYING) {
+            try {
+              const levels = playerRef.current?.getAvailableQualityLevels();
+              if (levels?.length) setQualityLevels(levels);
+              const q = playerRef.current?.getPlaybackQuality();
+              if (q) setQuality(q);
+            } catch (_) {}
+          }
           if (e.data === ENDED) {
             setPlaying(false);
             setVideos(vs =>
@@ -328,6 +364,10 @@ export default function Player() {
 
   function changeSpeed(s: number) {
     try { setSpeed(s); playerRef.current?.setPlaybackRate(s); } catch (_) {}
+  }
+
+  function changeQuality(q: string) {
+    try { playerRef.current?.setPlaybackQuality(q); setQuality(q); } catch (_) {}
   }
 
   function toggleFullscreen() {
@@ -577,6 +617,42 @@ export default function Player() {
                   </button>
                 ))}
               </div>
+
+              {/* Quality */}
+              {qualityLevels.length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowQuality(q => !q)}
+                    className={cn(
+                      "text-xs px-1.5 py-0.5 rounded transition-colors border border-white/20",
+                      showQuality ? "bg-white/20 text-white" : "text-white/70 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    {QUALITY_LABELS[quality] ?? quality}
+                  </button>
+                  {showQuality && (
+                    <div
+                      className="absolute bottom-full mb-2 right-0 bg-black/95 backdrop-blur-sm rounded-lg overflow-hidden border border-white/15 min-w-[80px] z-30 shadow-xl"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {qualityLevels.map(q => (
+                        <button
+                          key={q}
+                          onClick={() => { changeQuality(q); setShowQuality(false); }}
+                          className={cn(
+                            "w-full text-left px-3 py-1.5 text-xs transition-colors",
+                            quality === q
+                              ? "text-primary bg-white/10 font-medium"
+                              : "text-white/75 hover:text-white hover:bg-white/10"
+                          )}
+                        >
+                          {QUALITY_LABELS[q] ?? q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Fullscreen */}
               <button
