@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Reminder } from "@/lib/types";
 import { generateId } from "@/lib/utils";
@@ -18,9 +18,36 @@ export default function Reminders() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ label: '', time: '19:00', daysOfWeek: [1, 2, 3, 4, 5] as number[] });
 
+  const firedRef = useRef<Record<string, string>>({});
+
   useEffect(() => {
     if ('Notification' in window) setNotifPerm(Notification.permission);
   }, []);
+
+  /* ── Reminder scheduler — checks every 30 s ─────────────────────────── */
+  useEffect(() => {
+    function check() {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const now = new Date();
+      const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const dow = now.getDay();
+      const dateKey = now.toDateString();
+
+      reminders.forEach(r => {
+        if (!r.enabled) return;
+        if (r.time !== hhmm) return;
+        if (!r.daysOfWeek.includes(dow)) return;
+        const fireKey = `${r.id}|${hhmm}|${dateKey}`;
+        if (firedRef.current[r.id] === fireKey) return;
+        firedRef.current[r.id] = fireKey;
+        new Notification('📚 Study Reminder', { body: r.label, icon: '/favicon.ico' });
+      });
+    }
+
+    check();
+    const id = setInterval(check, 30_000);
+    return () => clearInterval(id);
+  }, [reminders]);
 
   async function requestPermission() {
     if ('Notification' in window) {
