@@ -5,11 +5,13 @@ import { Video, Note } from "@/lib/types";
 import { generateId, formatTimestamp } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   SkipBack, SkipForward, Plus, Trash2, Clock, CheckCircle2,
   RotateCcw, Star, Circle, ChevronLeft, List, ExternalLink,
-  AlertCircle, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2,
+  AlertCircle, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
@@ -129,6 +131,8 @@ export default function Player() {
   const [playerError,    setPlayerError]    = useState(false);
   const [ctrlVisible,    setCtrlVisible]    = useState(true);
   const [cssFullscreen,  setCssFullscreen]  = useState(false);
+  const [showRename,     setShowRename]     = useState(false);
+  const [renameValue,    setRenameValue]    = useState("");
 
   /* notes */
   const [noteText,  setNoteText]  = useState("");
@@ -365,6 +369,12 @@ export default function Player() {
     setVideos(vs => vs.map(v => v.id === videoId ? { ...v, status } : v));
   }
 
+  function confirmRename() {
+    if (!renameValue.trim()) return;
+    setVideos(vs => vs.map(v => v.id === videoId ? { ...v, title: renameValue.trim() } : v));
+    setShowRename(false);
+  }
+
   /* ── Guard ──────────────────────────────────────────────────────────── */
   if (!video) {
     return (
@@ -380,6 +390,7 @@ export default function Player() {
   const seekPct = duration > 0 ? currentTime / duration : 0;
 
   return (
+    <>
     <div className="flex flex-col h-full overflow-hidden bg-background">
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
 
@@ -393,7 +404,16 @@ export default function Player() {
               <ChevronLeft className="w-4 h-4" />Back
             </Button>
           </Link>
-          <h1 className="text-sm font-semibold line-clamp-1 flex-1 min-w-0">{video.title}</h1>
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <h1 className="text-sm font-semibold line-clamp-1 min-w-0 flex-1">{video.title}</h1>
+            <button
+              className="flex-shrink-0 p-1 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => { setRenameValue(video.title); setShowRename(true); }}
+              title="Rename video"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           {/* Status selector */}
           <Select value={video.status} onValueChange={v => setStatus(v as Video["status"])}>
@@ -629,5 +649,23 @@ export default function Player() {
       )}
       </div>
     </div>
+
+    {/* ── Rename video dialog ─────────────────────────────────────────── */}
+    <Dialog open={showRename} onOpenChange={setShowRename}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Rename Video</DialogTitle></DialogHeader>
+        <Input
+          value={renameValue}
+          onChange={e => setRenameValue(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && confirmRename()}
+          autoFocus
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowRename(false)}>Cancel</Button>
+          <Button onClick={confirmRename} disabled={!renameValue.trim()}>Rename</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

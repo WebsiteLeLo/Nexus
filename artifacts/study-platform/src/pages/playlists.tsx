@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Trash2, ListVideo, PlayCircle, X, GripVertical, Download, AlertCircle, Loader2, Youtube } from "lucide-react";
+import { Plus, Trash2, ListVideo, PlayCircle, X, GripVertical, Download, AlertCircle, Loader2, Youtube, Pencil } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +85,21 @@ export default function Playlists() {
 
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [videoSearch, setVideoSearch] = useState('');
+
+  const [showRename, setShowRename] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+
+  function openRename() {
+    if (!currentPlaylist) return;
+    setRenameValue(currentPlaylist.name);
+    setShowRename(true);
+  }
+
+  function confirmRename() {
+    if (!renameValue.trim() || !currentPlaylist) return;
+    setPlaylists(ps => ps.map(p => p.id === currentPlaylist.id ? { ...p, name: renameValue.trim() } : p));
+    setShowRename(false);
+  }
 
   const videoMap = useMemo(() => {
     const m: Record<string, Video> = {};
@@ -285,12 +300,19 @@ export default function Playlists() {
           ) : (
             <>
               <div className="px-6 py-4 border-b flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold">{currentPlaylist.name}</h2>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h2 className="text-lg font-semibold truncate min-w-0">{currentPlaylist.name}</h2>
+                      <button
+                        className="flex-shrink-0 p-1 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={openRename}
+                        title="Rename playlist"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
                       {currentPlaylist.youtubePlaylistId && (
-                        <a href={currentPlaylist.youtubePlaylistUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={currentPlaylist.youtubePlaylistUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
                           <Badge variant="secondary" className="text-xs gap-1 cursor-pointer hover:bg-red-500/10">
                             <Youtube className="w-3 h-3 text-red-500" />YouTube
                           </Badge>
@@ -299,7 +321,7 @@ export default function Playlists() {
                     </div>
                     <p className="text-sm text-muted-foreground">{playlistVideos.length} videos · {completed} completed</p>
                   </div>
-                  <Button size="sm" onClick={() => { setVideoSearch(''); setShowAddVideo(true); }}>
+                  <Button size="sm" className="flex-shrink-0" onClick={() => { setVideoSearch(''); setShowAddVideo(true); }}>
                     <Plus className="w-4 h-4 mr-1.5" />Add Video
                   </Button>
                 </div>
@@ -423,6 +445,23 @@ export default function Playlists() {
                 <><Download className="w-4 h-4 mr-2" />Import Playlist</>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename playlist dialog */}
+      <Dialog open={showRename} onOpenChange={setShowRename}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Rename Playlist</DialogTitle></DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={e => setRenameValue(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && confirmRename()}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRename(false)}>Cancel</Button>
+            <Button onClick={confirmRename} disabled={!renameValue.trim()}>Rename</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
