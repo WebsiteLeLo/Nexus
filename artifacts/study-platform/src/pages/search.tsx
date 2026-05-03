@@ -144,7 +144,7 @@ export default function Search() {
             </h3>
             <div className="space-y-2">
               {results.videos.map(video => (
-                <Link key={video.id} href={`/player/${video.id}`}>
+                <Link key={video.id} href={`/player/${video.id}?from=search`}>
                   <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer">
                     <img src={video.thumbnail} alt={video.title} className="w-20 h-11 object-cover rounded flex-shrink-0" />
                     <div className="flex-1 min-w-0">

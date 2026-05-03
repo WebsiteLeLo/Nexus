@@ -183,7 +183,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-2 px-3 pb-3">
             {recentVideos.map(video => (
-              <Link key={video.id} href={`/player/${video.id}`}>
+              <Link key={video.id} href={`/player/${video.id}?from=dashboard`}>
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer group">
                   <div className="w-20 aspect-video bg-muted rounded overflow-hidden flex-shrink-0 relative">
                     <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />

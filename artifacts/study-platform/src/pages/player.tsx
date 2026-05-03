@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "wouter";
+import { useParams, useSearch } from "wouter";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Video, Note } from "@/lib/types";
 import { generateId, formatTimestamp } from "@/lib/utils";
@@ -108,6 +108,17 @@ function VolumeBar({ value, onChange }: { value: number; onChange: (v: number) =
 ══════════════════════════════════════════════════════════════════════════ */
 export default function Player() {
   const { videoId } = useParams<{ videoId: string }>();
+  const search = useSearch();
+  const searchParams = new URLSearchParams(search);
+  const fromPage = searchParams.get("from") ?? "library";
+  const fromPlaylistId = searchParams.get("playlistId") ?? "";
+  const backHref =
+    fromPage === "playlists" ? `/playlists?playlist=${fromPlaylistId}` :
+    fromPage === "notes"     ? "/notes" :
+    fromPage === "revision"  ? "/revision" :
+    fromPage === "search"    ? "/search" :
+    fromPage === "dashboard" ? "/" :
+    "/library";
   const [videos, setVideos] = useLocalStorage<Video[]>("nexus-videos", []);
   const [notes, setNotes]   = useLocalStorage<Note[]>("nexus-notes",   []);
 
@@ -380,7 +391,7 @@ export default function Player() {
     return (
       <div className="flex-1 flex items-center justify-center flex-col gap-4">
         <p className="text-muted-foreground">Video not found</p>
-        <Link href="/library"><Button variant="outline">Go to Library</Button></Link>
+        <Link href={backHref}><Button variant="outline">Go Back</Button></Link>
       </div>
     );
   }
@@ -399,7 +410,7 @@ export default function Player() {
 
         {/* Top bar */}
         <div className="flex items-center gap-2 px-4 py-2.5 border-b flex-shrink-0 min-w-0">
-          <Link href="/library">
+          <Link href={backHref}>
             <Button size="sm" variant="ghost" className="h-7 px-2 flex-shrink-0">
               <ChevronLeft className="w-4 h-4" />Back
             </Button>

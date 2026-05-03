@@ -103,7 +103,7 @@ export default function Revision() {
                 <CardContent className="p-3">
                   <h3 className="font-medium text-sm line-clamp-2 mb-3">{video.title}</h3>
                   <div className="flex gap-2">
-                    <Link href={`/player/${video.id}`} className="flex-1">
+                    <Link href={`/player/${video.id}?from=revision`} className="flex-1">
                       <Button size="sm" variant="outline" className="w-full">
                         <Clock className="w-3.5 h-3.5 mr-1.5" />
                         {video.lastTimestamp > 0 ? 'Resume' : 'Watch'}

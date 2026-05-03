@@ -215,7 +215,7 @@ export default function Library() {
                                     {stExpanded && (
                                       <div className="px-14 pb-2 space-y-1">
                                         {subVideos.map(video => (
-                                          <Link key={video.id} href={`/player/${video.id}`}>
+                                          <Link key={video.id} href={`/player/${video.id}?from=library`}>
                                             <div className="flex items-center gap-3 px-3 py-2 rounded hover:bg-muted/30 transition-colors cursor-pointer group">
                                               <img src={video.thumbnail} alt={video.title} className="w-14 h-8 object-cover rounded flex-shrink-0" />
                                               <span className="text-sm flex-1 line-clamp-1">{video.title}</span>

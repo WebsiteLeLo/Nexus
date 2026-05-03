@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Trash2, ListVideo, PlayCircle, X, GripVertical, Download, AlertCircle, Loader2, Youtube, Pencil } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { cn } from "@/lib/utils";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
@@ -72,7 +72,11 @@ async function fetchAllPlaylistItems(playlistId: string, apiKey: string): Promis
 export default function Playlists() {
   const [playlists, setPlaylists] = useLocalStorage<Playlist[]>('nexus-playlists', []);
   const [videos, setVideos] = useLocalStorage<Video[]>('nexus-videos', []);
-  const [selected, setSelected] = useState<string | null>(playlists[0]?.id || null);
+  const urlSearch = useSearch();
+  const urlPlaylistId = new URLSearchParams(urlSearch).get('playlist');
+  const [selected, setSelected] = useState<string | null>(
+    urlPlaylistId ?? playlists[0]?.id ?? null
+  );
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
@@ -359,7 +363,7 @@ export default function Playlists() {
                           {video.status === 'completed' ? 'Done' : video.status === 'revise' ? 'Revise' : video.status === 'important' ? '★' : 'Pending'}
                         </Badge>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-                          <Link href={`/player/${video.id}`}>
+                          <Link href={`/player/${video.id}?from=playlists&playlistId=${selected}`}>
                             <Button size="sm" variant="outline" className="h-7 px-2">
                               <PlayCircle className="w-3.5 h-3.5" />
                             </Button>
