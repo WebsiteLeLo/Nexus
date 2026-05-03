@@ -539,8 +539,8 @@ export default function Files() {
                           ? <HardDrive className={cn("text-yellow-400", viewMode === 'grid' ? "w-8 h-8 mb-1" : "w-5 h-5 flex-shrink-0")} />
                           : <FolderOpen className={cn("text-amber-400", viewMode === 'grid' ? "w-8 h-8 mb-1" : "w-5 h-5 flex-shrink-0")} />
                         }
-                        <div className={cn("min-w-0", viewMode === 'grid' ? "text-center" : "flex-1")}>
-                          <p className="text-sm font-medium truncate">{sub.name}</p>
+                        <div className={cn("min-w-0", viewMode === 'grid' ? "w-full text-center" : "flex-1")}>
+                          <p className={cn("text-sm font-medium", viewMode === 'grid' ? "line-clamp-2 break-words" : "truncate")}>{sub.name}</p>
                           <p className="text-xs text-muted-foreground">{cnt} files</p>
                         </div>
                         <button
