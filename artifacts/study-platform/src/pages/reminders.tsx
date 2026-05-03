@@ -67,17 +67,17 @@ export default function Reminders() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Study Reminders</h1>
           <p className="text-sm text-muted-foreground">Set browser notifications to keep your study schedule</p>
         </div>
-        <Button onClick={() => setShowAdd(true)}>
-          <Plus className="w-4 h-4 mr-2" />Add Reminder
+        <Button size="sm" onClick={() => setShowAdd(true)}>
+          <Plus className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Add Reminder</span>
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         {notifPerm !== 'granted' && (
           <div className="mb-6 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
             <div className="flex items-center gap-3">

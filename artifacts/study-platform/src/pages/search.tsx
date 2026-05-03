@@ -80,7 +80,7 @@ export default function Search() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-6 py-4 border-b flex-shrink-0">
+      <div className="px-3 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0">
         <h1 className="text-2xl font-bold tracking-tight mb-3">Search</h1>
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />

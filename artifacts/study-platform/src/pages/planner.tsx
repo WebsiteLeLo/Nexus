@@ -71,7 +71,7 @@ export default function Planner() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Daily Study Planner</h1>
           <p className="text-sm text-muted-foreground">Plan and track your daily study goals</p>

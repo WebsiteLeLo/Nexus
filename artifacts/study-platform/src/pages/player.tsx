@@ -347,10 +347,11 @@ export default function Player() {
   const seekPct = duration > 0 ? currentTime / duration : 0;
 
   return (
-    <div className="flex h-full overflow-hidden bg-background">
+    <div className="flex flex-col h-full overflow-hidden bg-background">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
 
       {/* ── Video column ───────────────────────────────────────────────── */}
-      <div className={cn("flex flex-col overflow-hidden", showNotes ? "flex-1" : "w-full")}>
+      <div className={cn("flex flex-col md:overflow-hidden", showNotes ? "md:flex-1" : "w-full")}>
 
         {/* Top bar */}
         <div className="flex items-center gap-2 px-4 py-2.5 border-b flex-shrink-0 min-w-0">
@@ -529,7 +530,7 @@ export default function Player() {
 
       {/* ── Notes panel ────────────────────────────────────────────────── */}
       {showNotes && (
-        <div className="w-80 border-l flex flex-col overflow-hidden flex-shrink-0">
+        <div className="flex-1 md:flex-none md:w-80 border-t md:border-t-0 md:border-l flex flex-col overflow-hidden min-h-0">
           <div className="px-4 py-3 border-b flex-shrink-0">
             <h3 className="font-semibold text-sm">Notes</h3>
             <p className="text-xs text-muted-foreground">{videoNotes.length} notes for this video</p>
@@ -590,6 +591,7 @@ export default function Player() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

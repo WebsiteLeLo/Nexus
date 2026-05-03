@@ -1,23 +1,62 @@
-import { ReactNode } from "react";
+import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { UserSettings } from "@/lib/types";
+import { Menu, PlaySquare } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface ShellProps {
-  children: ReactNode;
-}
-
-export function Shell({ children }: ShellProps) {
-  const [settings] = useLocalStorage<UserSettings>('nexus-settings', {
-    theme: 'dark',
-    fontSize: 'medium',
-    focusMode: false
+export function Shell({ children }: { children: React.ReactNode }) {
+  const [settings] = useLocalStorage<UserSettings>("nexus-settings", {
+    theme: "dark", fontSize: "medium", focusMode: false,
   });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const showSidebar = !settings.focusMode;
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      {!settings.focusMode && <Sidebar />}
-      <main className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      {showSidebar && (
+        <>
+          {/* Mobile backdrop */}
+          {sidebarOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+
+          {/* Sidebar — fixed overlay on mobile, static on desktop */}
+          <div
+            className={cn(
+              "fixed inset-y-0 left-0 z-50 flex flex-col",
+              "md:relative md:z-auto md:translate-x-0",
+              "transition-transform duration-200 ease-in-out",
+              sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+            )}
+          >
+            <Sidebar onClose={() => setSidebarOpen(false)} />
+          </div>
+        </>
+      )}
+
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Mobile top bar */}
+        {showSidebar && (
+          <div className="md:hidden flex items-center gap-3 px-4 h-12 border-b flex-shrink-0 bg-background z-10">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-1 rounded hover:bg-muted/50 transition-colors"
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-primary text-primary-foreground flex items-center justify-center">
+                <PlaySquare className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-semibold text-sm tracking-tight">Nexus Study</span>
+            </div>
+          </div>
+        )}
         {children}
       </main>
     </div>

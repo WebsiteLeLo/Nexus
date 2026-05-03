@@ -38,22 +38,22 @@ export default function Revision() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Revision Mode</h1>
           <p className="text-sm text-muted-foreground">Focus on videos marked for revision or as important</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant={shuffle ? 'default' : 'outline'} size="sm" onClick={() => setShuffle(s => !s)}>
-            <Shuffle className="w-4 h-4 mr-2" />Shuffle
+            <Shuffle className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Shuffle</span>
           </Button>
           <Button variant="outline" size="sm" onClick={resetSession}>
-            <RotateCcw className="w-4 h-4 mr-2" />Reset
+            <RotateCcw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Reset</span>
           </Button>
         </div>
       </div>
 
-      <div className="px-6 py-3 border-b flex-shrink-0 flex items-center gap-4">
+      <div className="px-3 sm:px-6 py-3 border-b flex-shrink-0 flex flex-wrap items-center gap-3">
         <div className="flex gap-2">
           {(['all', 'revise', 'important'] as const).map(f => (
             <Button key={f} size="sm" variant={filter === f ? 'default' : 'outline'} onClick={() => setFilter(f)} className="capitalize">

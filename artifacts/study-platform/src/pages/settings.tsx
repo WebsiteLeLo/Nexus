@@ -56,12 +56,12 @@ export default function Settings() {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
-      <div className="px-6 py-4 border-b flex-shrink-0">
+      <div className="px-3 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0">
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">Customize your study environment</p>
       </div>
 
-      <div className="flex-1 p-6 max-w-xl space-y-8">
+      <div className="flex-1 p-4 sm:p-6 max-w-xl space-y-8">
         {/* Appearance */}
         <section>
           <h2 className="text-base font-semibold mb-4">Appearance</h2>

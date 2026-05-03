@@ -199,24 +199,39 @@ export default function Playlists() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Playlists</h1>
-          <p className="text-sm text-muted-foreground">Organize videos or import entire YouTube playlists</p>
+          <p className="text-sm text-muted-foreground hidden sm:block">Organize videos or import entire YouTube playlists</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={openImport}>
-            <Youtube className="w-4 h-4 mr-2 text-red-500" />Import from YouTube
+          <Button variant="outline" size="sm" onClick={openImport}>
+            <Youtube className="w-4 h-4 sm:mr-2 text-red-500" /><span className="hidden sm:inline">Import YouTube</span>
           </Button>
-          <Button onClick={() => { setNewName(''); setShowCreate(true); }}>
-            <Plus className="w-4 h-4 mr-2" />New Playlist
+          <Button size="sm" onClick={() => { setNewName(''); setShowCreate(true); }}>
+            <Plus className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">New Playlist</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-60 border-r flex-shrink-0 overflow-y-auto p-3 space-y-1">
+      {/* Mobile: horizontal playlist selector */}
+      <div className="md:hidden flex items-center gap-2 px-3 py-2 overflow-x-auto border-b flex-shrink-0 scrollbar-none">
+        {playlists.length === 0 ? (
+          <span className="text-xs text-muted-foreground px-1">No playlists yet</span>
+        ) : playlists.map(pl => (
+          <button key={pl.id}
+            className={`flex items-center gap-1.5 whitespace-nowrap text-xs px-3 py-1.5 rounded-full font-medium flex-shrink-0 transition-colors max-w-[140px] truncate ${selected === pl.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+            onClick={() => setSelected(pl.id)}
+          >
+            <ListVideo className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{pl.name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Sidebar — desktop only */}
+        <div className="hidden md:flex md:flex-col w-60 border-r flex-shrink-0 overflow-y-auto p-3 space-y-1">
           {playlists.length === 0 && (
             <div className="px-3 py-6 text-center">
               <ListVideo className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />

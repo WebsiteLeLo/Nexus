@@ -101,17 +101,17 @@ export default function Library() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Content Library</h1>
           <p className="text-sm text-muted-foreground">Organize your study materials by subject, topic, and subtopic</p>
         </div>
-        <Button onClick={() => { setInputName(''); setAddDialog({ type: 'subject' }); }}>
-          <Plus className="w-4 h-4 mr-2" />Add Subject
+        <Button size="sm" onClick={() => { setInputName(''); setAddDialog({ type: 'subject' }); }}>
+          <Plus className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Add Subject</span>
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         {subjects.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
             <VideoIcon className="w-12 h-12 mx-auto mb-4 opacity-20" />

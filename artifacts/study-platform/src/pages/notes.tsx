@@ -52,19 +52,37 @@ export default function Notes() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Notes Hub</h1>
           <p className="text-sm text-muted-foreground">{notes.length} notes across {videosWithNotes.length} videos</p>
         </div>
-        <Button variant="outline" onClick={exportNotes}>
-          <Download className="w-4 h-4 mr-2" />Export
+        <Button variant="outline" size="sm" onClick={exportNotes} className="flex-shrink-0">
+          <Download className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Export</span>
         </Button>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-56 border-r flex-shrink-0 overflow-y-auto p-3">
+      {/* Mobile: horizontal scrollable video filter */}
+      <div className="md:hidden flex items-center gap-2 px-3 py-2 overflow-x-auto border-b flex-shrink-0 scrollbar-none">
+        <button
+          className={`whitespace-nowrap text-xs px-3 py-1.5 rounded-full font-medium flex-shrink-0 transition-colors ${selectedVideo === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+          onClick={() => setSelectedVideo('all')}
+        >
+          All ({notes.length})
+        </button>
+        {videosWithNotes.map(video => (
+          <button key={video.id}
+            className={`whitespace-nowrap text-xs px-3 py-1.5 rounded-full font-medium flex-shrink-0 transition-colors max-w-[140px] truncate ${selectedVideo === video.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+            onClick={() => setSelectedVideo(video.id)}
+          >
+            {video.title}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Sidebar — desktop only */}
+        <div className="hidden md:flex md:flex-col w-56 border-r flex-shrink-0 overflow-y-auto p-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Filter by Video</p>
           <button
             className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${selectedVideo === 'all' ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/50'}`}
