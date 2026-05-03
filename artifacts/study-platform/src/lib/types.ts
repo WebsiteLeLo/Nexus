@@ -57,14 +57,18 @@ export interface Playlist {
   createdAt: string;
 }
 
+export type FileItemType = 'pdf' | 'image' | 'link' | 'video' | 'doc' | 'sheet' | 'slide' | 'drive';
+
 export interface FileItem {
   id: string;
   name: string;
-  type: 'pdf' | 'image' | 'link' | 'drive';
+  type: FileItemType;
   url: string;
   folderId?: string;
   tags: string[];
   addedAt: string;
+  driveFileId?: string;
+  mimeType?: string;
 }
 
 export interface Folder {
@@ -72,6 +76,8 @@ export interface Folder {
   parentId?: string;
   name: string;
   order: number;
+  driveId?: string;
+  importedAt?: string;
 }
 
 export interface PlannerTask {
