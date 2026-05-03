@@ -1,0 +1,247 @@
+
+---
+
+# 🚀 **AI Agent Prompt (Advanced Study Platform – Static Website)**
+
+Create a **modern, fully responsive static web application** designed for **distraction-free YouTube learning and study management**. The platform should feel like a **professional productivity tool**, combining video learning, notes, and file management into one seamless experience.
+
+---
+
+# 🎯 Core Objective
+
+Build a **zero-distraction learning system** where users can:
+
+* Watch YouTube videos without recommendations
+* Take smart notes
+* Organize study content (videos + files)
+* Track progress and revision
+
+---
+
+# 🧩 REQUIRED FEATURES
+
+---
+
+## 🧠 1. Smart Notes System (Core Feature)
+
+* Notes linked to each video
+* Support:
+
+  * Timestamp-based notes (e.g., 2:35 → “Important concept”)
+  * Clicking note jumps to that timestamp
+* Markdown support (bold, lists, code, headings)
+* Persistent storage using localStorage
+
+---
+
+## 📌 2. Bookmark + Revision System
+
+* Mark videos as:
+
+  * ✅ Completed
+  * 🔁 Revise Later
+  * ⭐ Important
+* Create a **Revision Mode**:
+
+  * Shows only marked videos
+  * Optional shuffle mode
+
+---
+
+## 🗂️ 3. Topic → Subtopic Structure
+
+* Hierarchical system:
+
+```
+Subject → Topic → Subtopic → Videos/Files
+```
+
+Example:
+
+```
+Physics → Mechanics → Kinematics → Videos
+```
+
+* Expand/collapse tree UI
+
+---
+
+## 🔍 4. Smart Search + Filters
+
+* Global search across:
+
+  * Video titles
+  * Notes
+  * Topics
+* Filters:
+
+  * Completed / Pending
+  * Bookmarked / Important
+  * Duration-based filtering
+
+---
+
+## 📂 5. Advanced File System
+
+* Upload/link PDFs, notes, and files
+* Folder-based organization
+* Tag system (e.g., “formula”, “revision”)
+* Built-in preview (PDF viewer, image viewer)
+
+---
+
+## ☁️ 6. Google Drive Folder Reader
+
+* Accept public Google Drive folder links
+* Fetch and display files dynamically
+* Preview supported files (PDF/images/docs)
+* Show in file explorer UI
+
+---
+
+## 🎥 7. Custom Video Player (Distraction-Free)
+
+* Embed YouTube videos using iframe
+* Hide:
+
+  * Recommended videos
+  * Comments
+* Show video description below
+
+---
+
+## ⚙️ 8. Player Enhancements
+
+* Playback speed control
+* Auto-next video
+* Skip forward/backward buttons
+* Resume from last watched timestamp
+
+---
+
+## 🔁 9. Playlist Automation
+
+* Import full YouTube playlists
+* Auto-fetch:
+
+  * Title
+  * Thumbnail
+  * Description
+* Show playlist sidebar
+* Track playlist progress %
+
+---
+
+## 🧩 10. Drag & Drop System
+
+* Drag videos between topics
+* Rearrange playlists
+* Move files between folders
+
+---
+
+## 📱 11. PWA (Progressive Web App)
+
+* Installable on mobile/desktop
+* Offline support for:
+
+  * Notes
+  * Saved structure
+  * PDFs (if cached)
+
+---
+
+## 🔔 12. Study Reminder System
+
+* Allow user to set study reminders
+* Use browser notifications
+* Example:
+
+  * “Study Physics at 7 PM”
+
+---
+
+## 🚫 13. Anti-Distraction Philosophy (Strict)
+
+Design rules:
+
+* No ads
+* No YouTube suggestions
+* No comments
+* Minimal UI in focus mode
+
+👉 Inspired as the opposite of YouTube
+
+---
+
+## 🧬 14. Concept Linking System (Unique Feature)
+
+* Link videos to concepts
+* One concept → multiple resources
+* Create a **knowledge graph-style structure**
+
+---
+
+## 🧾 15. Daily Study Planner
+
+* Add daily tasks:
+
+  * “Watch 3 videos”
+  * “Revise notes”
+* Mark tasks complete
+* Persist tasks locally
+
+---
+
+# 🎨 UI/UX REQUIREMENTS
+
+* Clean, modern design (inspired by Notion)
+* Layout:
+
+  * Sidebar (subjects/topics)
+  * Main content area
+* Dark mode default
+* Smooth animations
+* Fully responsive
+
+---
+
+# ⚙️ TECH STACK
+
+* HTML5
+* CSS3 / Tailwind CSS
+* Vanilla JavaScript or Alpine.js
+* No backend (static only)
+
+---
+
+# 💾 DATA STORAGE
+
+Use localStorage / IndexedDB for:
+
+* Videos & playlists
+* Notes & bookmarks
+* Study planner
+* User preferences
+
+---
+
+# 📦 OUTPUT REQUIREMENTS
+
+* Complete production-ready code
+* Clean folder structure
+* Modular components
+* Comments for readability
+* Instructions to run locally
+
+---
+
+# 💡 DESIGN PHILOSOPHY
+
+Focus on:
+
+* Deep work
+* Structured learning
+* Zero distractions
+* Fast performance
+

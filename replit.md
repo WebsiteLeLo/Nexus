@@ -25,3 +25,35 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## Artifacts
+
+### Study Platform (`artifacts/study-platform`)
+- **Type**: React + Vite frontend-only app (no backend)
+- **Preview path**: `/`
+- **Description**: Distraction-free YouTube learning platform — "Nexus Study"
+- **Data storage**: 100% localStorage (no server required)
+- **Pages**:
+  - `/` — Dashboard (stats, recent videos, today's tasks)
+  - `/library` — Content Library (Subject → Topic → Subtopic → Videos hierarchy)
+  - `/player/:videoId` — Distraction-free YouTube player with timestamp notes, speed control
+  - `/notes` — Notes Hub (all notes across videos, searchable)
+  - `/revision` — Revision Mode (Revise Later / Important queue)
+  - `/playlists` — Playlist manager
+  - `/files` — File Manager (PDFs, links, Drive folders, tags)
+  - `/search` — Global search (videos, notes, topics)
+  - `/planner` — Daily Study Planner with streak tracking
+  - `/reminders` — Browser notification reminders
+  - `/settings` — Theme, font size, data export/import/clear
+
+- **Key files**:
+  - `src/lib/types.ts` — all TypeScript interfaces + initial seed data
+  - `src/hooks/use-local-storage.ts` — localStorage state hook
+  - `src/components/theme-provider.tsx` — dark/light mode context
+  - `src/components/layout/shell.tsx` — app shell with sidebar
+  - `src/pages/player.tsx` — YouTube IFrame API integration
+
+### API Server (`artifacts/api-server`)
+- **Type**: Express API server
+- **Preview path**: `/api`
+- Currently only provides health check endpoint
