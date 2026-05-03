@@ -147,6 +147,13 @@ function typeBadgeColor(type: FileItemType) {
   return map[type] ?? 'bg-muted text-muted-foreground';
 }
 
+/* ── Count files in a folder including all descendant subfolders ─────────── */
+function countFilesRecursive(folderId: string, folders: Folder[], files: FileItem[]): number {
+  const direct = files.filter(f => f.folderId === folderId).length;
+  const children = folders.filter(f => f.parentId === folderId);
+  return direct + children.reduce((sum, c) => sum + countFilesRecursive(c.id, folders, files), 0);
+}
+
 /* ── Recursive sidebar folder tree ──────────────────────────────────────── */
 function FolderNode({
   folder, folders, files, currentId, expanded, onSelect, onToggle, onDelete, depth,
@@ -162,7 +169,7 @@ function FolderNode({
   depth: number;
 }) {
   const children = folders.filter(f => f.parentId === folder.id);
-  const fileCount = files.filter(f => f.folderId === folder.id).length;
+  const fileCount = countFilesRecursive(folder.id, folders, files);
   const isOpen = expanded.has(folder.id);
   const isSelected = currentId === folder.id;
 
@@ -525,7 +532,7 @@ export default function Files() {
                     : "space-y-1"
                 )}>
                   {subfolders.map(sub => {
-                    const cnt = files.filter(f => f.folderId === sub.id).length;
+                    const cnt = countFilesRecursive(sub.id, folders, files);
                     return (
                       <div
                         key={sub.id}
