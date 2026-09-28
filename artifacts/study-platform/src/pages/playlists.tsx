@@ -90,7 +90,8 @@ export default function Playlists() {
   const [importPreview, setImportPreview] = useState<{ playlistTitle: string; count: number; id: string } | null>(null);
 
   const [showAddVideo, setShowAddVideo] = useState(false);
-  const [videoSearch, setVideoSearch] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoTitle, setVideoTitle] = useState('');
 
   const [showRename, setShowRename] = useState(false);
   const [renameValue, setRenameValue] = useState('');
@@ -146,11 +147,6 @@ export default function Playlists() {
   const completed = playlistVideos.filter(v => v?.status === 'completed').length;
   const progress = playlistVideos.length > 0 ? Math.round((completed / playlistVideos.length) * 100) : 0;
 
-  const filteredVideos = videos.filter(v =>
-    (!videoSearch || v.title.toLowerCase().includes(videoSearch.toLowerCase())) &&
-    !(currentPlaylist?.videoIds.includes(v.id))
-  );
-
   function createPlaylist() {
     if (!newName.trim()) return;
     const pl: Playlist = { id: generateId(), name: newName.trim(), videoIds: [], createdAt: new Date().toISOString() };
@@ -166,8 +162,32 @@ export default function Playlists() {
     if (selected === id) setSelected(playlists.find(p => p.id !== id)?.id || null);
   }
 
-  function addVideo(videoId: string) {
-    setPlaylists(ps => ps.map(p => p.id === selected ? { ...p, videoIds: [...p.videoIds, videoId] } : p));
+  function handleAddVideo() {
+    if (!videoUrl.trim() || !currentPlaylist) return;
+    const urlStr = videoUrl.trim();
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{11})/,
+      /^([A-Za-z0-9_-]{11})$/
+    ];
+    let ytId = urlStr.slice(0, 11);
+    for (const p of patterns) { const m = urlStr.match(p); if (m) { ytId = m[1]; break; } }
+    
+    const newVideo: Video = {
+      id: generateId(), url: urlStr, youtubeId: ytId,
+      title: videoTitle.trim() || 'Untitled Video',
+      thumbnail: `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`,
+      description: '',
+      status: 'pending', progress: 0, lastTimestamp: 0, duration: 0,
+      order: videos.length + 1,
+      addedAt: new Date().toISOString()
+    };
+    
+    setVideos(vs => [...vs, newVideo]);
+    setPlaylists(ps => ps.map(p => p.id === currentPlaylist.id ? { ...p, videoIds: [...p.videoIds, newVideo.id] } : p));
+    
+    setVideoUrl('');
+    setVideoTitle('');
+    setShowAddVideo(false);
   }
 
   async function removeVideo(videoId: string) {
@@ -357,7 +377,7 @@ export default function Playlists() {
                     </div>
                     <p className="text-sm text-muted-foreground">{playlistVideos.length} videos · {completed} completed</p>
                   </div>
-                  <Button size="sm" className="flex-shrink-0" onClick={() => { setVideoSearch(''); setShowAddVideo(true); }}>
+                  <Button size="sm" className="flex-shrink-0" onClick={() => { setVideoUrl(''); setVideoTitle(''); setShowAddVideo(true); }}>
                     <Plus className="w-4 h-4 mr-1.5" />Add Video
                   </Button>
                 </div>
@@ -514,25 +534,16 @@ export default function Playlists() {
       {confirmDialog}
 
       {/* Add video dialog */}
-      <Dialog open={showAddVideo} onOpenChange={setShowAddVideo}>
+      <Dialog open={showAddVideo} onOpenChange={v => { setShowAddVideo(v); if (!v) { setVideoUrl(''); setVideoTitle(''); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Add Video to Playlist</DialogTitle></DialogHeader>
-          <Input placeholder="Search videos..." value={videoSearch} onChange={e => setVideoSearch(e.target.value)} autoFocus />
-          <div className="max-h-64 overflow-y-auto space-y-1 mt-1">
-            {filteredVideos.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                {videos.length === 0 ? 'No videos in your library yet.' : 'No more videos to add.'}
-              </p>
-            ) : filteredVideos.map(video => (
-              <div key={video.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => addVideo(video.id)}>
-                <img src={video.thumbnail} alt={video.title} className="w-14 h-8 object-cover rounded flex-shrink-0" />
-                <span className="text-sm line-clamp-1 flex-1">{video.title}</span>
-                <Plus className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              </div>
-            ))}
+          <div className="space-y-3 py-2">
+            <Input placeholder="Video title (optional)" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} />
+            <Input placeholder="YouTube URL or Video ID" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddVideo()} />
           </div>
           <DialogFooter>
-            <Button onClick={() => setShowAddVideo(false)}>Done</Button>
+            <Button variant="outline" onClick={() => setShowAddVideo(false)}>Cancel</Button>
+            <Button onClick={handleAddVideo} disabled={!videoUrl.trim()}>Add Video</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

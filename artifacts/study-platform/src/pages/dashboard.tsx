@@ -1,17 +1,17 @@
 import { useMemo } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Video, Subject, PlannerTask } from "@/lib/types";
+import { Video, Playlist, PlannerTask } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { PlayCircle, CheckCircle2, Clock, Flame, ListVideo, BookOpen, Plus, ChevronRight } from "lucide-react";
+import { PlayCircle, CheckCircle2, Clock, Flame, ListVideo, Plus, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import { todayStr } from "@/lib/utils";
 
 export default function Dashboard() {
   const [videos] = useLocalStorage<Video[]>('nexus-videos', []);
-  const [subjects] = useLocalStorage<Subject[]>('nexus-subjects', []);
+  const [playlists] = useLocalStorage<Playlist[]>('nexus-playlists', []);
   const [tasks] = useLocalStorage<PlannerTask[]>('nexus-planner', []);
 
   const completed = videos.filter(v => v.status === 'completed').length;
@@ -43,42 +43,27 @@ export default function Dashboard() {
     [videos]
   );
 
-  const isEmpty = videos.length === 0 && subjects.length === 0;
+  const isEmpty = videos.length === 0 && playlists.length === 0;
 
   if (isEmpty) {
     return (
       <div className="p-4 sm:p-8 max-w-3xl mx-auto w-full overflow-y-auto">
         <div className="mb-10">
           <h1 className="text-3xl font-bold tracking-tight">Welcome to Nexus Study</h1>
-          <p className="text-muted-foreground mt-2">Your distraction-free learning platform. Get started by setting up your library or importing a YouTube playlist.</p>
+          <p className="text-muted-foreground mt-2">Your distraction-free learning platform. Get started by importing a YouTube playlist or creating your own.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Link href="/library">
-            <Card className="cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all group">
-              <CardContent className="pt-6 pb-5">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                </div>
-                <h3 className="font-semibold mb-1">Build Your Library</h3>
-                <p className="text-sm text-muted-foreground">Create subjects, topics, subtopics and add YouTube videos to each.</p>
-                <div className="flex items-center gap-1 mt-4 text-sm text-primary font-medium">
-                  Start <ChevronRight className="w-4 h-4" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
           <Link href="/playlists">
             <Card className="cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all group">
               <CardContent className="pt-6 pb-5">
                 <div className="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center mb-4 group-hover:bg-violet-500/20 transition-colors">
                   <ListVideo className="w-5 h-5 text-violet-500" />
                 </div>
-                <h3 className="font-semibold mb-1">Import YouTube Playlist</h3>
-                <p className="text-sm text-muted-foreground">Paste any YouTube playlist URL and all videos are imported instantly.</p>
+                <h3 className="font-semibold mb-1">Playlists</h3>
+                <p className="text-sm text-muted-foreground">Import any YouTube playlist URL or create a custom playlist.</p>
                 <div className="flex items-center gap-1 mt-4 text-sm text-violet-500 font-medium">
-                  Import <ChevronRight className="w-4 h-4" />
+                  Get Started <ChevronRight className="w-4 h-4" />
                 </div>
               </CardContent>
             </Card>
@@ -125,7 +110,7 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Welcome back. Here's your study overview.</p>
         </div>
-        <Link href="/library">
+        <Link href="/playlists">
           <Button>
             <Plus className="w-4 h-4 mr-2" />Add Content
           </Button>
@@ -165,12 +150,12 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Subjects</CardTitle>
-            <PlayCircle className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-medium">Total Playlists</CardTitle>
+            <ListVideo className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{subjects.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">in your library</p>
+            <div className="text-2xl font-bold">{playlists.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">in your collection</p>
           </CardContent>
         </Card>
       </div>
@@ -182,7 +167,11 @@ export default function Dashboard() {
             <CardDescription>Pick up where you left off</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 px-3 pb-3">
-            {recentVideos.map(video => (
+            {recentVideos.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm border border-dashed rounded-lg">
+                No recent videos.
+              </div>
+            ) : recentVideos.map(video => (
               <Link key={video.id} href={`/player/${video.id}?from=dashboard`}>
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer group">
                   <div className="w-20 aspect-video bg-muted rounded overflow-hidden flex-shrink-0 relative">

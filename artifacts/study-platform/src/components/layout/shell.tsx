@@ -11,6 +11,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     theme: "light", fontSize: "medium", focusMode: false,
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useLocalStorage("nexus-sidebar-collapsed", false);
   const [location] = useLocation();
   const showSidebar = !settings.focusMode;
 
@@ -29,13 +30,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {/* Sidebar — fixed overlay on mobile, static on desktop */}
           <div
             className={cn(
-              "fixed inset-y-0 left-0 z-50 flex flex-col",
+              "fixed inset-y-0 left-0 z-50 flex flex-col bg-background",
               "md:relative md:z-auto md:translate-x-0",
-              "transition-transform duration-200 ease-in-out",
-              sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+              "transition-all duration-300 ease-in-out",
+              sidebarOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0",
+              !sidebarOpen && desktopCollapsed ? "md:w-[72px]" : "md:w-64"
             )}
           >
-            <Sidebar onClose={() => setSidebarOpen(false)} />
+            <Sidebar 
+              onClose={() => setSidebarOpen(false)} 
+              isCollapsed={!sidebarOpen && desktopCollapsed}
+              onToggleCollapse={() => setDesktopCollapsed(!desktopCollapsed)}
+            />
           </div>
         </>
       )}
