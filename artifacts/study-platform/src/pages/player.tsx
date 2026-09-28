@@ -89,16 +89,14 @@ function SeekBar({ value, onSeek }: { value: number; onSeek: (v: number) => void
   }
   return (
     <div
-      className="relative group flex-1 flex items-center h-5 cursor-pointer"
+      className="relative group flex-1 flex items-center h-6 cursor-pointer"
       onClick={handleClick}
     >
-      <div className="h-1 w-full rounded-full bg-white/20 overflow-visible group-hover:h-1.5 transition-all">
-        <div className="h-full bg-primary rounded-full" style={{ width: `${value * 100}%` }} />
+      <div className="h-1.5 w-full rounded-full bg-white/20 overflow-visible group-hover:h-2 transition-all">
+        <div className="h-full bg-primary rounded-full relative" style={{ width: `${value * 100}%` }}>
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-primary rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        </div>
       </div>
-      <div
-        className="absolute w-3 h-3 bg-primary rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-        style={{ left: `${value * 100}%`, transform: "translateX(-50%)" }}
-      />
     </div>
   );
 }
@@ -111,9 +109,11 @@ function VolumeBar({ value, onChange }: { value: number; onChange: (v: number) =
     onChange(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
   }
   return (
-    <div className="relative flex items-center h-5 w-16 cursor-pointer" onClick={handleClick}>
-      <div className="h-1 w-full rounded-full bg-white/20 overflow-hidden">
-        <div className="h-full bg-white/80 rounded-full" style={{ width: `${value * 100}%` }} />
+    <div className="relative group flex items-center h-6 w-full cursor-pointer" onClick={handleClick}>
+      <div className="h-1.5 w-full rounded-full bg-white/20 overflow-visible group-hover:h-2 transition-all">
+        <div className="h-full bg-white rounded-full relative" style={{ width: `${value * 100}%` }}>
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3.5 h-3.5 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        </div>
       </div>
     </div>
   );
@@ -165,6 +165,7 @@ export default function Player() {
   const [quality,        setQuality]        = useState('auto');
   const [qualityLevels,  setQualityLevels]  = useState<string[]>([]);
   const [showQuality,    setShowQuality]    = useState(false);
+  const [showDesc,       setShowDesc]       = useState(false);
 
   /* notes */
   const [noteText,  setNoteText]  = useState("");
@@ -214,12 +215,14 @@ export default function Player() {
       host:       "https://www.youtube-nocookie.com", // privacy-enhanced, less embedding restrictions
       playerVars: {
         autoplay:       1,
-        controls:       0,  // hide ALL native YouTube UI
-        disablekb:      1,  // block YouTube keyboard shortcuts
+        controls:       1,  // show native YouTube UI
+        disablekb:      0,  // allow YouTube keyboard shortcuts
         rel:            0,
         modestbranding: 1,
+        showinfo:       0,
+        autohide:       1,
         iv_load_policy: 3,
-        fs:             0,  // hide YouTube fullscreen button
+        fs:             1,  // show YouTube fullscreen button
         playsinline:    1,
         start:          Math.floor(video.lastTimestamp || 0),
         origin:         window.location.origin,
@@ -517,27 +520,9 @@ export default function Player() {
             cssFullscreen && "fixed inset-0 z-[9999] w-full h-full"
           )}
           style={cssFullscreen ? undefined : { paddingBottom: "56.25%" }}
-          onMouseMove={showCtrl}
-          onMouseLeave={() => { if (playing) setCtrlVisible(false); }}
         >
           {/* YT replaces this div with an iframe */}
           <div ref={containerRef} className="absolute inset-0 w-full h-full" />
-
-          {/* Transparent capture layer — blocks YouTube UI, forwards clicks */}
-          <div
-            className="absolute inset-0"
-            style={{ cursor: ctrlVisible ? "default" : "none" }}
-            onClick={e => { e.stopPropagation(); togglePlay(); showCtrl(); }}
-          />
-
-          {/* Centre play icon when paused */}
-          {!playing && !playerError && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                <Play className="w-7 h-7 text-white ml-1" fill="white" />
-              </div>
-            </div>
-          )}
 
           {/* Error overlay */}
           {playerError && (
@@ -553,132 +538,23 @@ export default function Player() {
               <p className="text-xs text-white/40">You can still take notes — they will be saved.</p>
             </div>
           )}
-
-          {/* ── Custom control bar ──────────────────────────────────────── */}
-          <div
-            className={cn(
-              "absolute bottom-0 inset-x-0 z-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent",
-              "px-4 pt-8 pb-3 transition-opacity duration-300",
-              ctrlVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-            )}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Seek bar */}
-            <SeekBar value={seekPct} onSeek={v => seek(v * duration)} />
-
-            {/* Controls row */}
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-
-              {/* Play / Pause */}
-              <button
-                className="w-8 h-8 flex items-center justify-center text-white hover:text-primary transition-colors"
-                onClick={togglePlay}
-              >
-                {playing
-                  ? <Pause className="w-5 h-5" fill="currentColor" />
-                  : <Play  className="w-5 h-5 ml-0.5" fill="currentColor" />
-                }
-              </button>
-
-              {/* Skip back */}
-              <button
-                className="flex items-center gap-0.5 text-white/80 hover:text-white text-xs transition-colors"
-                onClick={() => seek(currentTime - 10)}
-              >
-                <SkipBack className="w-4 h-4" />10
-              </button>
-
-              {/* Skip forward */}
-              <button
-                className="flex items-center gap-0.5 text-white/80 hover:text-white text-xs transition-colors"
-                onClick={() => seek(currentTime + 10)}
-              >
-                10<SkipForward className="w-4 h-4" />
-              </button>
-
-              {/* Mute */}
-              <button className="text-white/80 hover:text-white transition-colors" onClick={toggleMute}>
-                {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              </button>
-              <VolumeBar value={muted ? 0 : volume} onChange={changeVolume} />
-
-              {/* Time */}
-              <span className="text-xs text-white/80 font-mono tabular-nums ml-1">
-                {formatTimestamp(currentTime)}
-                {duration > 0 && <span className="text-white/50"> / {formatTimestamp(duration)}</span>}
-              </span>
-
-              <div className="flex-1" />
-
-              {/* Speed */}
-              <div className="flex items-center gap-0.5">
-                {SPEED_OPTIONS.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => changeSpeed(s)}
-                    className={cn(
-                      "text-xs px-1.5 py-0.5 rounded transition-colors",
-                      speed === s
-                        ? "bg-primary text-white"
-                        : "text-white/60 hover:text-white hover:bg-white/10"
-                    )}
-                  >
-                    {s}x
-                  </button>
-                ))}
-              </div>
-
-              {/* Quality */}
-              {qualityLevels.length > 0 && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowQuality(q => !q)}
-                    className={cn(
-                      "text-xs px-1.5 py-0.5 rounded transition-colors border border-white/20",
-                      showQuality ? "bg-white/20 text-white" : "text-white/70 hover:text-white hover:bg-white/10"
-                    )}
-                  >
-                    {QUALITY_LABELS[quality] ?? quality}
-                  </button>
-                  {showQuality && (
-                    <div
-                      className="absolute bottom-full mb-2 right-0 bg-black/95 backdrop-blur-sm rounded-lg overflow-hidden border border-white/15 min-w-[80px] z-30 shadow-xl"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      {qualityLevels.map(q => (
-                        <button
-                          key={q}
-                          onClick={() => { changeQuality(q); setShowQuality(false); }}
-                          className={cn(
-                            "w-full text-left px-3 py-1.5 text-xs transition-colors",
-                            quality === q
-                              ? "text-primary bg-white/10 font-medium"
-                              : "text-white/75 hover:text-white hover:bg-white/10"
-                          )}
-                        >
-                          {QUALITY_LABELS[q] ?? q}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Fullscreen */}
-              <button
-                className="text-white/80 hover:text-white transition-colors ml-1"
-                onClick={toggleFullscreen}
-              >
-                {(cssFullscreen || nativeFs) ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Description */}
         {video.description && (
-          <div className="px-4 py-2.5 border-b flex-shrink-0">
-            <p className="text-sm text-muted-foreground line-clamp-2">{video.description}</p>
+          <div className="px-4 py-3 border-b flex-shrink-0 bg-muted/10">
+            <h3 className="text-sm font-semibold mb-1">Description</h3>
+            <p className={cn("text-sm text-foreground/80 whitespace-pre-wrap", !showDesc && "line-clamp-2")}>
+              {video.description}
+            </p>
+            {video.description.length > 150 && (
+              <button
+                className="text-xs font-medium mt-1.5 text-primary hover:underline"
+                onClick={() => setShowDesc(!showDesc)}
+              >
+                {showDesc ? "Show less" : "Show more"}
+              </button>
+            )}
           </div>
         )}
       </div>

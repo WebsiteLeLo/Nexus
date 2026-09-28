@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Sidebar } from "./sidebar";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { UserSettings } from "@/lib/types";
@@ -7,9 +8,10 @@ import { cn } from "@/lib/utils";
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [settings] = useLocalStorage<UserSettings>("nexus-settings", {
-    theme: "dark", fontSize: "medium", focusMode: false,
+    theme: "light", fontSize: "medium", focusMode: false,
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [location] = useLocation();
   const showSidebar = !settings.focusMode;
 
   return (
@@ -57,7 +59,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         )}
-        {children}
+        <div key={location} className="flex-1 flex flex-col min-h-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {children}
+        </div>
       </main>
     </div>
   );

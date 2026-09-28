@@ -393,25 +393,22 @@ export default function Playlists() {
                       >
                         <GripVertical className="w-4 h-4 text-muted-foreground/40 flex-shrink-0 cursor-grab active:cursor-grabbing" />
                         <span className="text-xs text-muted-foreground w-6 text-right flex-shrink-0">{i + 1}</span>
-                        <img src={video.thumbnail} alt={video.title} className="w-20 h-11 object-cover rounded flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium line-clamp-1">{video.title}</p>
-                          {video.progress > 0 && (
-                            <div className="flex items-center gap-2 mt-1">
-                              <Progress value={video.progress} className="h-1 w-20" />
-                              <span className="text-xs text-muted-foreground">{video.progress}%</span>
-                            </div>
-                          )}
-                        </div>
+                        <Link href={`/player/${video.id}?from=playlists&playlistId=${selected}`} className="flex flex-1 items-center gap-3 min-w-0">
+                          <img src={video.thumbnail} alt={video.title} className="w-20 h-11 object-cover rounded flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors">{video.title}</p>
+                            {video.progress > 0 && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Progress value={video.progress} className="h-1 w-20" />
+                                <span className="text-xs text-muted-foreground">{video.progress}%</span>
+                              </div>
+                            )}
+                          </div>
+                        </Link>
                         <Badge variant={video.status === 'completed' ? 'default' : 'secondary'} className="text-xs flex-shrink-0">
                           {video.status === 'completed' ? 'Done' : video.status === 'revise' ? 'Revise' : video.status === 'important' ? '★' : 'Pending'}
                         </Badge>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-                          <Link href={`/player/${video.id}?from=playlists&playlistId=${selected}`}>
-                            <Button size="sm" variant="outline" className="h-7 px-2">
-                              <PlayCircle className="w-3.5 h-3.5" />
-                            </Button>
-                          </Link>
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => removeVideo(video.id)}>
                             <X className="w-3.5 h-3.5" />
                           </Button>
