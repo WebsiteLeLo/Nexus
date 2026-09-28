@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Library, PlaySquare, BookOpen, Repeat,
-  ListVideo, FolderOpen, Search, CalendarDays, Bell, Settings, X,
+  ListVideo, FolderOpen, Search, CalendarDays, Bell, Settings, X, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/search",    label: "Search",    icon: Search },
   { href: "/planner",   label: "Planner",   icon: CalendarDays },
   { href: "/reminders", label: "Reminders", icon: Bell },
+  { href: "https://pwxstudy.site/", label: "PWX Study", icon: ExternalLink, isExternal: true },
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
@@ -28,9 +29,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     <aside className="w-64 border-r bg-sidebar text-sidebar-foreground flex flex-col h-full">
       <div className="h-14 flex items-center justify-between px-5 border-b font-semibold text-lg tracking-tight flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center">
-            <PlaySquare className="w-5 h-5" />
-          </div>
+          <img src="/logo-192x192.jpg" alt="Nexus Study Logo" className="w-8 h-8 rounded-md object-cover shadow-sm" />
           Nexus Study
         </div>
         {/* X button only visible on mobile */}
@@ -46,6 +45,23 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
+
+          if (item.isExternal) {
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                target="pwxstudy_tab"
+                rel="noopener"
+                onClick={handleNav}
+                className="flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              >
+                <Icon className="w-4 h-4 mr-3 text-muted-foreground" />
+                {item.label}
+              </a>
+            );
+          }
+
           const isActive =
             location === item.href ||
             (item.href !== "/" && location.startsWith(item.href));

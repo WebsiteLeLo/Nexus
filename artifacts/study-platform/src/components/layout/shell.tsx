@@ -52,9 +52,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-primary text-primary-foreground flex items-center justify-center">
-                <PlaySquare className="w-3.5 h-3.5" />
-              </div>
+              <img src="/logo-192x192.jpg" alt="Nexus Study Logo" className="w-6 h-6 rounded object-cover shadow-sm" />
               <span className="font-semibold text-sm tracking-tight">Nexus Study</span>
             </div>
           </div>

@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { VitePWA } from "vite-plugin-pwa";
 
 const rawPort = process.env.PORT || "5173";
 
@@ -20,6 +21,31 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      manifest: {
+        name: 'Nexus Study',
+        short_name: 'Nexus',
+        description: 'Advanced YouTube study platform and note-taking app.',
+        theme_color: '#ffffff',
+        icons: [
+          {
+            src: 'logo-192x192.jpg',
+            sizes: '192x192',
+            type: 'image/jpeg'
+          },
+          {
+            src: 'logo-512x512.jpg',
+            sizes: '512x512',
+            type: 'image/jpeg'
+          }
+        ]
+      },
+      devOptions: {
+        enabled: true
+      }
+    }),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
